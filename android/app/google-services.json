@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "228672076341",
+    "project_id": "up-heal-0001",
+    "storage_bucket": "up-heal-0001.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:228672076341:android:868be297f5745073304f7c",
+        "android_client_info": {
+          "package_name": "com.example.mindquest"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCABrAlPpeRojPIFQlTsVYIc2n8rSEoJZY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

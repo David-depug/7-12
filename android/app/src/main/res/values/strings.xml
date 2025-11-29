@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MindQuest</string>
+    <string name="accessibility_service_description">This service helps you stay focused by blocking distracting apps and websites. It monitors app usage and displays blocking overlays when needed.</string>
+</resources>
+

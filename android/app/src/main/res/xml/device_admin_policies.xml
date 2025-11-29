@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<device-admin>
+    <!-- هذا الإعداد يمنح التطبيق صلاحية منع إلغاء التثبيت (Anti-Uninstall) -->
+    <uses-policies>
+        <!-- سياسة منع إلغاء التثبيت -->
+        <disable-uninstall />
+    </uses-policies>
+</device-admin>
