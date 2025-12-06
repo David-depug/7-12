@@ -23,6 +23,7 @@ import 'screens/mini_games_screen.dart';
 import 'screens/sleep_tracker_screen.dart';
 import 'screens/step_tracker_screen.dart';
 import 'services/screen_time_service.dart';
+import 'package:flutter/services.dart'; // للـ MethodChannel
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,14 +38,13 @@ class MindQuestApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Safe font loading with fallback
     TextTheme textTheme;
     try {
       textTheme = GoogleFonts.interTextTheme();
     } catch (e) {
-      // Fallback to default theme if GoogleFonts fails
       textTheme = ThemeData.light().textTheme;
     }
+
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthModel()),
@@ -104,22 +104,22 @@ class RootNav extends StatefulWidget {
   State<RootNav> createState() => _RootNavState();
 }
 
-// Global key for accessing drawer from child screens
 final GlobalKey<ScaffoldState> rootNavScaffoldKey = GlobalKey<ScaffoldState>();
 
 class _RootNavState extends State<RootNav> {
   int _index = 0;
+  static const platform = MethodChannel('com.appguard.native_calls');
 
   final _screens = [
-    const HomeScreen(),                    // 0
-    const ChallengesScreen(),              // 1
-    const MiniGamesScreen(),               // 2
-    const CommunityScreen(),               // 3
-    const AnalyticsScreen(),               // 4
-    const SleepTrackerScreen(),            // 5
-    const StepTrackerScreen(),             // 6
-    const ParentalControlScreen(),         // 7
-    const ProfileScreen(),                 // 8
+    const HomeScreen(),
+    const ChallengesScreen(),
+    const MiniGamesScreen(),
+    const CommunityScreen(),
+    const AnalyticsScreen(),
+    const SleepTrackerScreen(),
+    const StepTrackerScreen(),
+    const ParentalControlScreen(),
+    const ProfileScreen(),
   ];
 
   final List<_NavItem> _navItems = const [
@@ -140,6 +140,21 @@ class _RootNavState extends State<RootNav> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    startGuardService(); // تشغيل الخدمة عند فتح التطبيق
+  }
+
+  Future<void> startGuardService() async {
+    try {
+      await platform.invokeMethod('startGuardService');
+      debugPrint("GuardService started successfully");
+    } on PlatformException catch (e) {
+      debugPrint("Failed to start GuardService: ${e.message}");
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final selectedColor = AppColors.purple;
 
@@ -150,7 +165,6 @@ class _RootNavState extends State<RootNav> {
         child: SafeArea(
           child: Column(
             children: [
-              // Drawer Header
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
@@ -205,7 +219,6 @@ class _RootNavState extends State<RootNav> {
                 ),
               ),
               const Divider(color: Colors.white24),
-              // Navigation Items
               Expanded(
                 child: ListView.builder(
                   padding: const EdgeInsets.symmetric(vertical: 8),

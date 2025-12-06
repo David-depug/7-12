@@ -6,28 +6,40 @@ import android.content.Intent
 import android.os.Build
 import android.util.Log
 
-private const val TAG = "BootReceiver"
+private const val TAG_BOOT = "BootReceiver"
 
-// =======================================================================================
-// === BootReceiver for Self-Healing / Anti-Stop ===
-// =======================================================================================
 class BootReceiver : BroadcastReceiver() {
-
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
-            Log.d(TAG, "Device booted, starting GuardService...")
-
-            val serviceIntent = Intent(context, GuardService::class.java)
-
+            Log.d(TAG_BOOT, "Device booted, starting GuardService...")
             try {
+                val serviceIntent = Intent(context, GuardService::class.java)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     context.startForegroundService(serviceIntent)
                 } else {
                     context.startService(serviceIntent)
                 }
-                Log.d(TAG, "GuardService started from BootReceiver")
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to start GuardService from BootReceiver: ${e.message}")
+                Log.e(TAG_BOOT, "Failed to start GuardService on boot: ${e.message}")
+            }
+        }
+    }
+}
+
+// RestartReceiver used by GuardService scheduleRestart
+class RestartReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action == "com.example.flutter_my_app_main.RESTART_GUARD") {
+            try {
+                val serviceIntent = Intent(context, GuardService::class.java)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(serviceIntent)
+                } else {
+                    context.startService(serviceIntent)
+                }
+                Log.d(TAG_BOOT, "RestartReceiver started GuardService")
+            } catch (e: Exception) {
+                Log.e(TAG_BOOT, "RestartReceiver failed: ${e.message}")
             }
         }
     }

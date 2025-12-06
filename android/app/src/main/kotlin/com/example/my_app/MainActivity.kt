@@ -39,20 +39,36 @@ class MainActivity: FlutterActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 🔹 Check if Device Admin is active
+        // 🔹 Start GuardService in foreground
+        startGuardService()
+
+        // 🔹 Check if Device Admin is active; if not show warning + request
         if (!checkDeviceAdminActive(this)) {
             // Show warning layout forcing admin activation
             showAdminWarning()
             // Request Device Admin permission
             requestDeviceAdminPermission(this)
-            // Close MainActivity to prevent access
+            // Close MainActivity to prevent access until user activates admin
             finish()
             return
         }
     }
 
+    private fun startGuardService() {
+        try {
+            val intent = Intent(this, GuardService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+            Log.d(TAG, "Requested GuardService start from MainActivity")
+        } catch (e: Exception) {
+            Log.e(TAG, "startGuardService error: ${e.message}")
+        }
+    }
+
     private fun showAdminWarning() {
-        // Simple full-screen red warning
         val scrollView = ScrollView(this)
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -112,6 +128,10 @@ class MainActivity: FlutterActivity() {
                     Toast.makeText(this, "Block logic initiated for: $appName (Service Required)", Toast.LENGTH_LONG).show()
                     result.success(true)
                 }
+                "startGuardService" -> {
+                    startGuardService()
+                    result.success(true)
+                }
                 else -> result.notImplemented()
             }
         }
@@ -120,22 +140,31 @@ class MainActivity: FlutterActivity() {
     // =================== Device Admin Methods ===================
 
     private fun checkDeviceAdminActive(context: Context): Boolean {
-        val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
-        val componentName = ComponentName(context, AdminReceiver::class.java)
-        return devicePolicyManager.isAdminActive(componentName)
+        return try {
+            val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            val componentName = ComponentName(context, AdminReceiver::class.java)
+            devicePolicyManager.isAdminActive(componentName)
+        } catch (e: Exception) {
+            Log.e(TAG, "checkDeviceAdminActive error: ${e.message}")
+            false
+        }
     }
 
     private fun requestDeviceAdminPermission(context: Context) {
-        val componentName = ComponentName(context, AdminReceiver::class.java)
-        val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        try {
+            val componentName = ComponentName(context, AdminReceiver::class.java)
+            val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
 
-        if (!devicePolicyManager.isAdminActive(componentName)) {
-            val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
-            intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, componentName)
-            intent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "⚠️ You must enable this permission to use the app.")
-            startActivity(intent)
-        } else {
-            Toast.makeText(context, "Device Admin already enabled.", Toast.LENGTH_SHORT).show()
+            if (!devicePolicyManager.isAdminActive(componentName)) {
+                val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
+                intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, componentName)
+                intent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "⚠️ You must enable this permission to use the app.")
+                startActivity(intent)
+            } else {
+                Toast.makeText(context, "Device Admin already enabled.", Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "requestDeviceAdminPermission error: ${e.message}")
         }
     }
 
@@ -226,26 +255,17 @@ class AdminReceiver : DeviceAdminReceiver() {
             Log.e(TAG, "Failed to launch app after disable request: ${e.message}")
         }
 
-        // Prevent disabling
-        return "\n" +
-                "            ⚠\uFE0F Important Security Notice! ⚠\uFE0F\n" +
-                "\n" +
-                "            This application contains special security features that prevent disabling protection.\n" +
-                "            \n" +
-                "            Please read carefully:\n" +
-                "\n" +
-                "            1. Do not attempt to remove device admin privileges.\n" +
-                "            2. Do not attempt to forcefully uninstall or disable the app.\n" +
-                "            3. Usage will be monitored to ensure device safety.\n" +
-                "            4. All user actions may be logged for security purposes.\n" +
-                "            5. Attempting to bypass security features may result in automatic corrective actions.\n" +
-                "            6. Ensure you understand and agree to all conditions before proceeding.\n" +
-                "            7. This is a very long message to ensure user awareness.\n" +
-                "            8. You must scroll to the bottom to press the Agree button.\n" +
-                "            9. Add more terms here if needed.\n" +
-                "            10. Continue reading until the end...\n" +
-                "\n" +
-                "            ⛔CAN'T DESAPLE THIS OPTION!\n!"
+        return """
+            ⚠️ Important Security Notice! ⚠️
+
+            This application contains special security features that prevent disabling protection.
+
+            1. Do not attempt to remove device admin privileges.
+            2. Do not attempt to forcefully uninstall or disable the app.
+            3. Usage may be monitored to ensure device safety.
+            4. Attempting to bypass security features may result in automatic corrective actions.
+            5. Read all conditions before proceeding.
+        """.trimIndent()
     }
 
     override fun onEnabled(context: Context, intent: Intent) {

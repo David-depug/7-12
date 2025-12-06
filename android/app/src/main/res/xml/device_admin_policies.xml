@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<device-admin>
-    <!-- هذا الإعداد يمنح التطبيق صلاحية منع إلغاء التثبيت (Anti-Uninstall) -->
+<device-admin xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-policies>
-        <!-- سياسة منع إلغاء التثبيت -->
-        <disable-uninstall />
+        <!-- السياسات الأساسية المطلوبة -->
+        <force-lock />
+        <wipe-data />
+        <reset-password />
+        <disable-camera />
     </uses-policies>
 </device-admin>
