@@ -12,6 +12,8 @@ import 'models/parental_control_model.dart';
 import 'models/screen_time_model.dart';
 import 'models/sleep_model.dart';
 import 'models/step_counter_model.dart';
+import 'features/steps/state/step_tracker_state.dart';
+import 'features/steps/ui/screens/step_tracker_screen.dart';
 import 'screens/challenges_screen.dart';
 import 'screens/community_screen.dart';
 import 'screens/home_screen.dart';
@@ -21,7 +23,6 @@ import 'screens/parental_control_screen.dart';
 import 'screens/analytics_screen.dart';
 import 'screens/mini_games_screen.dart';
 import 'screens/sleep_tracker_screen.dart';
-import 'screens/step_tracker_screen.dart';
 import 'services/screen_time_service.dart';
 import 'package:flutter/services.dart'; // للـ MethodChannel
 
@@ -61,7 +62,8 @@ class MindQuestApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => MissionsModel()),
         ChangeNotifierProvider(create: (_) => ParentalControlModel()),
         ChangeNotifierProvider(create: (_) => SleepModel()),
-        ChangeNotifierProvider(create: (_) => StepCounterModel()),
+        ChangeNotifierProvider(create: (_) => StepCounterModel()), // Keep for backward compatibility if needed
+        ChangeNotifierProvider(create: (_) => StepTrackerState()),
         ChangeNotifierProvider(create: (_) {
           final screenTimeModel = ScreenTimeModel();
           ScreenTimeService.initialize(screenTimeModel);

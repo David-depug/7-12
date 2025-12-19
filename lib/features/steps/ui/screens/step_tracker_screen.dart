@@ -1,13 +1,17 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../models/step_data.dart';
-import '../services/step_service.dart';
-import '../constants/app_colors.dart';
-import '../main.dart';
+import '../../../../constants/app_colors.dart';
+import '../../../../main.dart';
+import '../../state/step_tracker_state.dart';
+import '../widgets/step_permission_widget.dart';
+import '../widgets/step_progress_card.dart';
+import '../widgets/step_stat_card.dart';
 
+/// Main step tracking screen
+/// Displays step data, charts, and statistics
 class StepTrackerScreen extends StatefulWidget {
   const StepTrackerScreen({super.key});
 
@@ -15,69 +19,41 @@ class StepTrackerScreen extends StatefulWidget {
   State<StepTrackerScreen> createState() => _StepTrackerScreenState();
 }
 
-class _StepTrackerScreenState extends State<StepTrackerScreen> {
-  final StepService _stepService = StepService();
-  bool _isLoading = false;
+class _StepTrackerScreenState extends State<StepTrackerScreen> with WidgetsBindingObserver {
   String _selectedPeriod = 'weekly'; // 'daily', 'weekly', 'monthly'
 
   @override
   void initState() {
     super.initState();
-    _initializeService();
+    // Listen to app lifecycle changes to detect permission grants
+    WidgetsBinding.instance.addObserver(this);
+    // Initialize step tracking when screen is first shown
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final state = context.read<StepTrackerState>();
+      if (!state.isInitialized) {
+        state.initialize();
+      }
+    });
   }
 
-  Future<void> _initializeService() async {
-    setState(() => _isLoading = true);
-    await _stepService.initialize();
-    setState(() => _isLoading = false);
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
-  Future<void> _addManualSteps(int steps) async {
-    await _stepService.addSteps(steps);
-    setState(() {});
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Added $steps steps! 🚶'),
-          backgroundColor: AppColors.purple,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // When app resumes (e.g., after permission dialog), re-check permissions
+    if (state == AppLifecycleState.resumed) {
+      final stepState = context.read<StepTrackerState>();
+      // Re-check permissions and re-initialize if needed
+      stepState.refresh();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Scaffold(
-        backgroundColor: const Color(0xFF1B1B1B),
-        appBar: AppBar(
-          backgroundColor: const Color(0xFF1B1B1B),
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(LucideIcons.menu, color: Colors.white, size: 24),
-            onPressed: () => rootNavScaffoldKey.currentState?.openDrawer(),
-            tooltip: 'Menu',
-          ),
-          title: Text(
-            'Step Tracker',
-            style: GoogleFonts.inter(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        body: const Center(child: CircularProgressIndicator(color: AppColors.purple)),
-      );
-    }
-
-    final todaySteps = _stepService.todaySteps;
-    final stepCount = _stepService.todayStepCount;
-    final goal = _stepService.dailyGoal;
-    final progress = stepCount / goal;
-    final remainingSteps = (goal - stepCount).clamp(0, goal);
-
     return Scaffold(
       backgroundColor: const Color(0xFF1B1B1B),
       appBar: AppBar(
@@ -99,187 +75,108 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> {
         actions: [
           IconButton(
             icon: const Icon(LucideIcons.refreshCw, color: Colors.white),
-            onPressed: _initializeService,
+            onPressed: () {
+              context.read<StepTrackerState>().refresh();
+            },
             tooltip: 'Refresh',
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Today's Steps Card
-            _buildTodayStepsCard(stepCount, goal, progress, todaySteps),
-            const SizedBox(height: 20),
+      body: Consumer<StepTrackerState>(
+        builder: (context, state, _) {
+          if (state.isLoading && !state.isInitialized) {
+            return const Center(
+              child: CircularProgressIndicator(color: AppColors.purple),
+            );
+          }
 
-            // Quick Actions
-            _buildQuickActionsCard(remainingSteps, goal),
-            const SizedBox(height: 20),
+          if (!state.hasPermission) {
+            return SingleChildScrollView(
+              child: StepPermissionWidget(state: state),
+            );
+          }
 
-            // Period Selector
-            _buildPeriodSelector(),
-            const SizedBox(height: 20),
+          if (state.errorMessage != null) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    LucideIcons.alertCircle,
+                    color: Colors.red,
+                    size: 48,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    state.errorMessage!,
+                    style: GoogleFonts.inter(color: Colors.white70),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => state.refresh(),
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            );
+          }
 
-            // Statistics Cards
-            _buildStatisticsCards(),
-            const SizedBox(height: 20),
-
-            // Step Chart
-            _buildStepChart(),
-            const SizedBox(height: 20),
-
-            // Recent History
-            _buildRecentHistory(),
-          ],
-        ),
+          return _buildContent(context, state);
+        },
       ),
     );
   }
 
-  Widget _buildTodayStepsCard(int steps, int goal, double progress, StepData? todayData) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.purple.withOpacity(0.3),
-            const Color(0xFFF97316).withOpacity(0.2),
-          ],
-        ),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.2),
-          width: 1,
-        ),
-      ),
+  Widget _buildContent(BuildContext context, StepTrackerState state) {
+    final stepCount = state.todayStepCount;
+    final goal = state.dailyGoal;
+    final progress = state.progressPercentage / 100;
+    final todaySteps = state.todaySteps;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Today\'s Steps',
-                    style: GoogleFonts.inter(
-                      color: Colors.white70,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    steps.toString(),
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontSize: 48,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.purple,
-                      const Color(0xFFF97316),
-                    ],
-                  ),
-                ),
-                child: const Icon(
-                  LucideIcons.footprints,
-                  color: Colors.white,
-                  size: 40,
-                ),
-              ),
-            ],
+          // Today's Steps Card
+          StepProgressCard(
+            steps: stepCount,
+            goal: goal,
+            progress: progress,
+            todayData: todaySteps,
           ),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Goal: $goal steps',
-                style: GoogleFonts.inter(
-                  color: Colors.white70,
-                  fontSize: 14,
-                ),
-              ),
-              Text(
-                '${(progress * 100).toStringAsFixed(0)}%',
-                style: GoogleFonts.inter(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: progress.clamp(0.0, 1.0),
-              minHeight: 12,
-              backgroundColor: Colors.white.withOpacity(0.1),
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.purple),
-            ),
-          ),
-          if (todayData != null) ...[
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStatItem(
-                  'Distance',
-                  '${todayData.distance.toStringAsFixed(2)} km',
-                  LucideIcons.mapPin,
-                ),
-                _buildStatItem(
-                  'Calories',
-                  '${todayData.calories}',
-                  LucideIcons.flame,
-                ),
-              ],
-            ),
-          ],
+          const SizedBox(height: 20),
+
+          // Quick Actions
+          _buildQuickActionsCard(context, state, goal - stepCount, goal),
+          const SizedBox(height: 20),
+
+          // Period Selector
+          _buildPeriodSelector(),
+          const SizedBox(height: 20),
+
+          // Statistics Cards
+          _buildStatisticsCards(state),
+          const SizedBox(height: 20),
+
+          // Step Chart
+          _buildStepChart(state),
+          const SizedBox(height: 20),
+
+          // Recent History
+          _buildRecentHistory(state),
         ],
       ),
     );
   }
 
-  Widget _buildStatItem(String label, String value, IconData icon) {
-    return Column(
-      children: [
-        Icon(icon, color: Colors.white70, size: 20),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: GoogleFonts.inter(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        Text(
-          label,
-          style: GoogleFonts.inter(
-            color: Colors.white70,
-            fontSize: 12,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuickActionsCard(int remainingSteps, int goal) {
+  Widget _buildQuickActionsCard(
+    BuildContext context,
+    StepTrackerState state,
+    int remainingSteps,
+    int goal,
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -311,7 +208,7 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> {
             children: [
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () => _showAddStepsDialog(),
+                  onPressed: () => _showAddStepsDialog(context, state),
                   icon: const Icon(LucideIcons.plus),
                   label: const Text('Add Steps'),
                   style: ElevatedButton.styleFrom(
@@ -325,11 +222,10 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () {
-                    _stepService.updateSteps(goal);
-                    setState(() {});
+                    state.updateSteps(goal);
                   },
                   icon: const Icon(LucideIcons.target),
-                  label: Text('Set to Goal'),
+                  label: const Text('Set to Goal'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
                     side: const BorderSide(color: Colors.white70),
@@ -344,7 +240,7 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> {
     );
   }
 
-  void _showAddStepsDialog() {
+  void _showAddStepsDialog(BuildContext context, StepTrackerState state) {
     final controller = TextEditingController();
     showDialog(
       context: context,
@@ -361,10 +257,10 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> {
           decoration: InputDecoration(
             labelText: 'Number of steps',
             labelStyle: GoogleFonts.inter(color: Colors.white70),
-            enabledBorder: UnderlineInputBorder(
+            enabledBorder: const UnderlineInputBorder(
               borderSide: BorderSide(color: Colors.white70),
             ),
-            focusedBorder: UnderlineInputBorder(
+            focusedBorder: const UnderlineInputBorder(
               borderSide: BorderSide(color: AppColors.purple),
             ),
           ),
@@ -372,17 +268,32 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: GoogleFonts.inter(color: Colors.white70)),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.inter(color: Colors.white70),
+            ),
           ),
           TextButton(
             onPressed: () {
               final steps = int.tryParse(controller.text) ?? 0;
               if (steps > 0) {
-                _addManualSteps(steps);
+                state.addSteps(steps);
                 Navigator.pop(context);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Added $steps steps! 🚶'),
+                      backgroundColor: AppColors.purple,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
               }
             },
-            child: Text('Add', style: GoogleFonts.inter(color: AppColors.purple)),
+            child: Text(
+              'Add',
+              style: GoogleFonts.inter(color: AppColors.purple),
+            ),
           ),
         ],
       ),
@@ -430,10 +341,10 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> {
     );
   }
 
-  Widget _buildStatisticsCards() {
+  Widget _buildStatisticsCards(StepTrackerState state) {
     final now = DateTime.now();
     DateTime startDate;
-    
+
     switch (_selectedPeriod) {
       case 'daily':
         startDate = DateTime(now.year, now.month, now.day);
@@ -448,82 +359,54 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> {
         startDate = now.subtract(const Duration(days: 7));
     }
 
-    final steps = _stepService.getStepsForPeriod(startDate, now);
-    final totalSteps = _stepService.getTotalStepsForPeriod(startDate, now);
-    final avgSteps = _stepService.getAverageStepsForPeriod(startDate, now);
+    final totalSteps = state.getTotalStepsForPeriod(startDate, now);
+    final avgSteps = state.getAverageStepsForPeriod(startDate, now);
+    final steps = state.getStepsForPeriod(startDate, now);
 
     return Row(
       children: [
         Expanded(
-          child: _buildStatCard('Total', totalSteps.toString(), LucideIcons.trendingUp),
+          child: StepStatCard(
+            label: 'Total',
+            value: totalSteps.toString(),
+            icon: LucideIcons.trendingUp,
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: _buildStatCard('Average', avgSteps.toStringAsFixed(0), LucideIcons.barChart3),
+          child: StepStatCard(
+            label: 'Average',
+            value: avgSteps.toStringAsFixed(0),
+            icon: LucideIcons.barChart3,
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: _buildStatCard('Days', steps.length.toString(), LucideIcons.calendar),
+          child: StepStatCard(
+            label: 'Days',
+            value: steps.length.toString(),
+            icon: LucideIcons.calendar,
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        gradient: LinearGradient(
-          colors: [
-            Colors.white.withOpacity(0.1),
-            Colors.white.withOpacity(0.05),
-          ],
-        ),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.2),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: AppColors.purple, size: 24),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: GoogleFonts.inter(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              color: Colors.white70,
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStepChart() {
+  Widget _buildStepChart(StepTrackerState state) {
     final now = DateTime.now();
-    List<StepData> chartData;
-    
+    List chartData;
+
     switch (_selectedPeriod) {
       case 'daily':
-        chartData = [if (_stepService.todaySteps != null) _stepService.todaySteps!];
+        chartData = [if (state.todaySteps != null) state.todaySteps!];
         break;
       case 'weekly':
         final startDate = now.subtract(Duration(days: now.weekday - 1));
-        chartData = _stepService.getStepsForPeriod(startDate, now);
+        chartData = state.getStepsForPeriod(startDate, now);
         break;
       case 'monthly':
         final startDate = DateTime(now.year, now.month, 1);
-        chartData = _stepService.getStepsForPeriod(startDate, now);
+        chartData = state.getStepsForPeriod(startDate, now);
         break;
       default:
         chartData = [];
@@ -579,8 +462,8 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> {
             height: 200,
             child: LineChart(
               LineChartData(
-                gridData: FlGridData(show: false),
-                titlesData: FlTitlesData(show: false),
+                gridData: const FlGridData(show: false),
+                titlesData: const FlTitlesData(show: false),
                 borderData: FlBorderData(show: false),
                 lineBarsData: [
                   LineChartBarData(
@@ -590,7 +473,7 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> {
                     isCurved: true,
                     color: AppColors.purple,
                     barWidth: 3,
-                    dotData: FlDotData(show: true),
+                    dotData: const FlDotData(show: true),
                     belowBarData: BarAreaData(
                       show: true,
                       color: AppColors.purple.withOpacity(0.2),
@@ -607,8 +490,8 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> {
     );
   }
 
-  Widget _buildRecentHistory() {
-    final recentSteps = _stepService.stepHistory.take(7).toList()
+  Widget _buildRecentHistory(StepTrackerState state) {
+    final recentSteps = state.stepHistory.take(7).toList()
       ..sort((a, b) => b.date.compareTo(a.date));
 
     if (recentSteps.isEmpty) {
@@ -632,7 +515,7 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> {
     );
   }
 
-  Widget _buildHistoryItem(StepData data) {
+  Widget _buildHistoryItem(data) {
     final dateStr = '${data.date.day}/${data.date.month}/${data.date.year}';
     return Container(
       margin: const EdgeInsets.only(bottom: 8),

@@ -45,5 +45,12 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Step tracking permissions -->
+	<key>NSMotionUsageDescription</key>
+	<string>This app needs access to motion sensors to track your steps and physical activity.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>This app needs access to health data to track your steps.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>This app needs access to update health data for step tracking.</string>
 </dict>
 </plist>
