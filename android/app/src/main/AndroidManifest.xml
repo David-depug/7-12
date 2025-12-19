@@ -8,13 +8,13 @@
     <uses-permission android:name="android.permission.USE_FINGERPRINT"/>
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
     <!-- الإذن العام للخدمة الأمامية -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
 
-    <!-- ⚠️ مهم جداً: أذونات أندرويد 14 المحددة بناءً على النوع الذي اخترته -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <!-- Foreground service permissions (keep only what is actually needed) -->
+    <!-- Removed connected-device specific permissions because app does not use hardware transports -->
 
     <!-- for Android 13+ notifications -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -92,7 +92,7 @@
             android:name=".GuardService"
             android:enabled="true"
             android:exported="true"
-            android:foregroundServiceType="dataSync|connectedDevice" />
+            android:foregroundServiceType="mediaPlayback" />
 
         <meta-data
             android:name="flutterEmbedding"
