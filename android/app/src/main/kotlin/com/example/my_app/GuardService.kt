@@ -3,6 +3,7 @@ package com.example.flutter_my_app_main
 import android.app.*
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.os.*
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -45,7 +46,12 @@ class GuardService : Service() {
             .setOngoing(true)
             .build()
 
-        startForeground(101, notification)
+        // For Android 14+ (API 34+), specify the foreground service type
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(101, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+        } else {
+            startForeground(101, notification)
+        }
         Log.d(TAG, "GuardService started in foreground")
     }
 

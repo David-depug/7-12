@@ -16,8 +16,8 @@
     <!-- الإذن العام للخدمة الأمامية -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
 
-    <!-- Foreground service permissions (keep only what is actually needed) -->
-    <!-- Removed connected-device specific permissions because app does not use hardware transports -->
+    <!-- ⚠️ مهم جداً: أذونات أندرويد 14 المحددة بناءً على النوع الذي اخترته -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <!-- for Android 13+ notifications -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -95,7 +95,7 @@
             android:name=".GuardService"
             android:enabled="true"
             android:exported="true"
-            android:foregroundServiceType="mediaPlayback" />
+            android:foregroundServiceType="dataSync" />
 
         <meta-data
             android:name="flutterEmbedding"

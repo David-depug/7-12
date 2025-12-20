@@ -1,4 +1,6 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:lucide_icons/lucide_icons.dart';
@@ -28,10 +30,47 @@ import 'package:flutter/services.dart'; // للـ MethodChannel
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  runApp(const MindQuestApp());
+  
+  // Set up error handling
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    debugPrint('Flutter Error: ${details.exception}');
+    debugPrint('Stack trace: ${details.stack}');
+  };
+  
+  // Handle async errors
+  PlatformDispatcher.instance.onError = (error, stack) {
+    debugPrint('Platform Error: $error');
+    debugPrint('Stack trace: $stack');
+    return true;
+  };
+  
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    debugPrint('Firebase initialized successfully');
+  } catch (e) {
+    debugPrint('Firebase initialization error: $e');
+    // Continue even if Firebase fails to initialize
+  }
+  
+  try {
+    runApp(const MindQuestApp());
+  } catch (e, stackTrace) {
+    debugPrint('Error running app: $e');
+    debugPrint('Stack trace: $stackTrace');
+    // Try to show a minimal error screen
+    runApp(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Text('Error: $e'),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class MindQuestApp extends StatelessWidget {
@@ -66,7 +105,10 @@ class MindQuestApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => StepTrackerState()),
         ChangeNotifierProvider(create: (_) {
           final screenTimeModel = ScreenTimeModel();
-          ScreenTimeService.initialize(screenTimeModel);
+          // Initialize service asynchronously to not block app startup
+          ScreenTimeService.initialize(screenTimeModel).catchError((e) {
+            debugPrint('ScreenTimeService initialization error: $e');
+          });
           return screenTimeModel;
         }),
       ],

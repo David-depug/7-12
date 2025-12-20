@@ -39,19 +39,14 @@ class MainActivity: FlutterActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 🔹 Start GuardService in foreground
-        startGuardService()
-
-        // 🔹 Check if Device Admin is active; if not show warning + request
-        if (!checkDeviceAdminActive(this)) {
-            // Show warning layout forcing admin activation
-            showAdminWarning()
-            // Request Device Admin permission
-            requestDeviceAdminPermission(this)
-            // Close MainActivity to prevent access until user activates admin
-            finish()
-            return
+        // 🔹 Start GuardService in foreground (non-blocking)
+        try {
+            startGuardService()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start GuardService in onCreate: ${e.message}")
         }
+
+        // Note: Device admin check moved to configureFlutterEngine to allow Flutter to initialize first
     }
 
     private fun startGuardService() {
@@ -66,6 +61,23 @@ class MainActivity: FlutterActivity() {
         } catch (e: Exception) {
             Log.e(TAG, "startGuardService error: ${e.message}")
         }
+    }
+
+    private fun checkAndRequestDeviceAdmin() {
+        // Check device admin status asynchronously to not block app startup
+        Handler(Looper.getMainLooper()).postDelayed({
+            try {
+                if (!checkDeviceAdminActive(this)) {
+                    // Request Device Admin permission (non-blocking)
+                    requestDeviceAdminPermission(this)
+                    Log.d(TAG, "Device Admin not active, permission requested")
+                } else {
+                    Log.d(TAG, "Device Admin is active")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error checking device admin: ${e.message}")
+            }
+        }, 1000) // Delay to allow Flutter UI to render first
     }
 
     private fun showAdminWarning() {
@@ -101,6 +113,9 @@ class MainActivity: FlutterActivity() {
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+
+        // 🔹 Check Device Admin status after Flutter is initialized (non-blocking)
+        checkAndRequestDeviceAdmin()
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
@@ -184,11 +199,20 @@ class MainActivity: FlutterActivity() {
     private fun hasUsageAccessPermission(context: Context): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
-            val mode = appOps.checkOpNoThrow(
-                AppOpsManager.OPSTR_GET_USAGE_STATS,
-                Process.myUid(),
-                context.packageName
-            )
+            val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                appOps.unsafeCheckOpNoThrow(
+                    AppOpsManager.OPSTR_GET_USAGE_STATS,
+                    Process.myUid(),
+                    context.packageName
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                appOps.checkOpNoThrow(
+                    AppOpsManager.OPSTR_GET_USAGE_STATS,
+                    Process.myUid(),
+                    context.packageName
+                )
+            }
             return mode == AppOpsManager.MODE_ALLOWED
         }
         return false
