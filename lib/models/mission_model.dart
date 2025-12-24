@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Mission {
   Mission({
@@ -43,6 +44,33 @@ class MissionsModel extends ChangeNotifier {
   }
 
   int get completedCount => _missions.where((m) => m.completed).length;
-}
 
+  /// Returns true when all missions in the list are marked completed.
+  ///
+  /// Currently all missions are treated as daily missions.
+  bool get allDailyMissionsCompleted => _missions.isNotEmpty && _missions.every((m) => m.completed);
+
+  /// Ensures the user's streak can only be upgraded once per day from missions.
+  ///
+  /// Returns true if this is the first successful streak upgrade for today,
+  /// and false if the streak was already upgraded earlier today.
+  Future<bool> markStreakUpgradedForTodayIfNeeded() async {
+    final prefs = await SharedPreferences.getInstance();
+    const key = 'last_streak_from_missions_date';
+    final todayKey = _todayKey();
+    final last = prefs.getString(key);
+    if (last == todayKey) {
+      return false;
+    }
+    await prefs.setString(key, todayKey);
+    return true;
+  }
+
+  String _todayKey() {
+    final now = DateTime.now();
+    return '${now.year.toString().padLeft(4, '0')}-'
+        '${now.month.toString().padLeft(2, '0')}-'
+        '${now.day.toString().padLeft(2, '0')}';
+  }
+}
 

@@ -34,6 +34,15 @@ class StepTrackerState extends ChangeNotifier {
 
   StreamSubscription<StepData>? _stepSubscription;
 
+  // Throttling for notifyListeners to prevent UI freeze
+  Timer? _notifyThrottleTimer;
+  bool _pendingNotify = false;
+  static const Duration _notifyThrottleDuration = Duration(milliseconds: 2000); // Max 1 update per 2 seconds for smoother performance
+
+  // Debouncing for I/O operations
+  Timer? _saveDebounceTimer;
+  static const Duration _saveDebounceDuration = Duration(seconds: 5); // Save every 5 seconds max
+
   // Getters
   bool get isInitialized => _isInitialized;
   bool get isLoading => _isLoading;
@@ -60,31 +69,46 @@ class StepTrackerState extends ChangeNotifier {
   /// Initialize step tracking (load data, check permissions, start sensor)
   Future<void> initialize() async {
     if (_isInitialized) return;
+    
+    // Prevent multiple simultaneous initializations
+    if (_isLoading) {
+      debugPrint('Already initializing - skipping duplicate call');
+      return;
+    }
 
     _setLoading(true);
     _clearError();
 
     try {
-      // Load persisted data
-      await _loadData();
+      // Load persisted data (with timeout to prevent blocking)
+      await _loadData().timeout(
+        const Duration(seconds: 3),
+        onTimeout: () {
+          debugPrint('Load data timeout - continuing with empty data');
+        },
+      );
 
-      // Check and request permissions
-      await _checkPermissions();
-
-      // Start sensor if permission granted (non-blocking - don't wait for first event)
-      if (_hasPermission) {
-        // Don't await - let it start in background to avoid blocking UI
-        _startTracking().catchError((error) {
-          // Handle errors but don't block initialization
-          _setError('Sensor initialization warning: $error');
-        });
-      }
+      // Check and request permissions (non-blocking)
+      // Don't await - let it happen in background
+      _checkPermissions().then((_) {
+        // Start sensor if permission granted (non-blocking)
+        if (_hasPermission && !_isTracking) {
+          _startTracking().catchError((error) {
+            debugPrint('Sensor initialization warning: $error');
+            _setError('Sensor initialization warning: $error');
+          });
+        }
+      }).catchError((error) {
+        debugPrint('Permission check error: $error');
+        _hasPermission = false;
+      });
 
       _isInitialized = true;
     } catch (e) {
+      debugPrint('Initialize error: $e');
       _setError('Failed to initialize step tracking: $e');
     } finally {
-      // Always clear loading state, even if sensor is still initializing
+      // Always clear loading state quickly
       _setLoading(false);
       notifyListeners();
     }
@@ -114,11 +138,25 @@ class StepTrackerState extends ChangeNotifier {
     );
   }
 
-  /// Check and request permissions
+  /// Check and request permissions (non-blocking with timeout)
   Future<void> _checkPermissions() async {
-    _hasPermission = await _permissionService.hasPermission();
-    if (!_hasPermission) {
-      _hasPermission = await _permissionService.requestPermission();
+    try {
+      // Add timeout to prevent blocking - check permission quickly
+      _hasPermission = await _permissionService.hasPermission()
+          .timeout(const Duration(seconds: 1), onTimeout: () {
+        debugPrint('Permission check timeout - assuming denied');
+        return false;
+      });
+      
+      // Only request if not granted and not already checking
+      if (!_hasPermission) {
+        // Don't request automatically - let user request manually
+        // This prevents blocking during initialization
+        debugPrint('Permission not granted - user can request manually');
+      }
+    } catch (e) {
+      debugPrint('Permission check error: $e');
+      _hasPermission = false;
     }
   }
 
@@ -152,7 +190,30 @@ class StepTrackerState extends ChangeNotifier {
   void _onStepUpdate(StepData stepData) {
     _todaySteps = stepData;
     _updateStepHistory(stepData);
-    notifyListeners();
+    _throttledNotifyListeners(); // Use throttled version
+  }
+
+  /// Throttled notifyListeners - limits updates to max 1 per 2 seconds for better performance
+  void _throttledNotifyListeners() {
+    _pendingNotify = true;
+    
+    // Only notify if timer is not active (throttle to max 1 per 2 seconds)
+    if (_notifyThrottleTimer == null || !_notifyThrottleTimer!.isActive) {
+      // Notify immediately on first update
+      notifyListeners();
+      _pendingNotify = false;
+      
+      // Set up timer to prevent excessive updates
+      _notifyThrottleTimer = Timer(_notifyThrottleDuration, () {
+        // Only notify if there's a pending update
+        if (_pendingNotify) {
+          notifyListeners();
+          _pendingNotify = false;
+        }
+        _notifyThrottleTimer = null;
+      });
+    }
+    // If timer is active, just mark as pending - will notify when timer fires
   }
 
   /// Update step history with new data
@@ -169,8 +230,19 @@ class StepTrackerState extends ChangeNotifier {
       _stepHistory.add(stepData);
     }
 
-    // Persist to storage
-    _repository.saveStepHistory(_stepHistory);
+    // Debounced save to storage - prevents I/O blocking main thread
+    _debouncedSaveHistory();
+  }
+
+  /// Debounced save - only saves every 5 seconds max to prevent I/O blocking
+  void _debouncedSaveHistory() {
+    _saveDebounceTimer?.cancel();
+    _saveDebounceTimer = Timer(_saveDebounceDuration, () {
+      // Save in background without blocking
+      _repository.saveStepHistory(_stepHistory).catchError((error) {
+        debugPrint('Error saving step history: $error');
+      });
+    });
   }
 
   /// Manually update steps (for manual entry or testing)
@@ -301,6 +373,16 @@ class StepTrackerState extends ChangeNotifier {
   @override
   void dispose() {
     _stepSubscription?.cancel();
+    _notifyThrottleTimer?.cancel();
+    
+    // Flush any pending save before disposing
+    _saveDebounceTimer?.cancel();
+    if (_stepHistory.isNotEmpty) {
+      _repository.saveStepHistory(_stepHistory).catchError((error) {
+        debugPrint('Error saving step history on dispose: $error');
+      });
+    }
+    
     _sensorService.dispose();
     super.dispose();
   }

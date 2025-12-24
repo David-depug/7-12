@@ -13,14 +13,11 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1B1B1B),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1B1B1B),
         elevation: 0,
         title: Text(
           'Profile',
           style: GoogleFonts.inter(
-            color: Colors.white,
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
@@ -28,7 +25,6 @@ class ProfileScreen extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(
             LucideIcons.menu,
-            color: Colors.white,
             size: 24,
           ),
           onPressed: () {
@@ -44,19 +40,19 @@ class ProfileScreen extends StatelessWidget {
             child: Column(
               children: [
                 // User Info Card
-                _buildUserInfoCard(authModel),
+                _buildUserInfoCard(context, authModel),
                 const SizedBox(height: 20),
                 
                 // Stats Section
-                _buildStatsSection(userModel),
+                _buildStatsSection(context, userModel),
                 const SizedBox(height: 20),
                 
                 // Achievements Section
-                _buildAchievementsSection(),
+                _buildAchievementsSection(context),
                 const SizedBox(height: 20),
                 
                 // Premium Button
-                _buildPremiumButton(),
+                _buildPremiumButton(context),
                 const SizedBox(height: 16),
                 
                 // Logout Button
@@ -69,7 +65,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildUserInfoCard(AuthModel authModel) {
+  Widget _buildUserInfoCard(BuildContext context, AuthModel authModel) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -78,12 +74,12 @@ class ProfileScreen extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.1),
-            Colors.white.withOpacity(0.05),
+            Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            Theme.of(context).colorScheme.primary.withOpacity(0.05),
           ],
         ),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Theme.of(context).dividerColor,
           width: 1,
         ),
       ),
@@ -98,8 +94,8 @@ class ProfileScreen extends StatelessWidget {
                 height: 80,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(40),
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF7C3AED), Color(0xFFF97316)],
+                  gradient: LinearGradient(
+                    colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.secondary],
                   ),
                 ),
                 child: const Icon(
@@ -126,7 +122,7 @@ class ProfileScreen extends StatelessWidget {
                       authModel.userEmail ?? '',
                       style: GoogleFonts.inter(
                         fontSize: 16,
-                        color: Colors.white.withOpacity(0.7),
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -170,7 +166,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatsSection(UserModel userModel) {
+  Widget _buildStatsSection(BuildContext context, UserModel userModel) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -179,12 +175,12 @@ class ProfileScreen extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.1),
-            Colors.white.withOpacity(0.05),
+            Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            Theme.of(context).colorScheme.primary.withOpacity(0.05),
           ],
         ),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Theme.of(context).dividerColor,
           width: 1,
         ),
       ),
@@ -210,6 +206,7 @@ class ProfileScreen extends StatelessWidget {
             children: [
               Expanded(
                 child: _buildStatItem(
+                  context,
                   'XP',
                   '${userModel.xp}',
                   LucideIcons.zap,
@@ -219,6 +216,7 @@ class ProfileScreen extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: _buildStatItem(
+                  context,
                   'Level',
                   '${userModel.level}',
                   LucideIcons.trophy,
@@ -232,6 +230,7 @@ class ProfileScreen extends StatelessWidget {
             children: [
               Expanded(
                 child: _buildStatItem(
+                  context,
                   'Streak',
                   '${userModel.streakDays}',
                   LucideIcons.flame,
@@ -241,6 +240,7 @@ class ProfileScreen extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: _buildStatItem(
+                  context,
                   'Badges',
                   '${userModel.badges}',
                   LucideIcons.award,
@@ -254,12 +254,12 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatItem(String label, String value, IconData icon, Color color) {
+  Widget _buildStatItem(BuildContext context, String label, String value, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        color: Colors.white.withOpacity(0.05),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
         border: Border.all(
           color: Colors.white.withOpacity(0.1),
           width: 1,
@@ -293,7 +293,7 @@ class ProfileScreen extends StatelessWidget {
             label,
             style: GoogleFonts.inter(
               fontSize: 12,
-              color: Colors.white.withOpacity(0.7),
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
             ),
           ),
         ],
@@ -301,7 +301,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAchievementsSection() {
+  Widget _buildAchievementsSection(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -310,12 +310,12 @@ class ProfileScreen extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.1),
-            Colors.white.withOpacity(0.05),
+            Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            Theme.of(context).colorScheme.primary.withOpacity(0.05),
           ],
         ),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Theme.of(context).dividerColor,
           width: 1,
         ),
       ),
@@ -349,7 +349,7 @@ class ProfileScreen extends StatelessWidget {
             itemBuilder: (context, i) => Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
-                color: Colors.white.withOpacity(0.05),
+                color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
                 border: Border.all(
                   color: Colors.white.withOpacity(0.1),
                   width: 1,
@@ -368,7 +368,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPremiumButton() {
+  Widget _buildPremiumButton(BuildContext context) {
     return SizedBox(
       width: double.infinity,
       height: 50,
@@ -380,7 +380,7 @@ class ProfileScreen extends StatelessWidget {
           style: GoogleFonts.inter(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         style: ElevatedButton.styleFrom(
@@ -437,7 +437,7 @@ class ProfileScreen extends StatelessWidget {
           content: Text(
             'Are you sure you want to logout?',
             style: GoogleFonts.inter(
-              color: Colors.white.withOpacity(0.7),
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
             ),
           ),
           actions: [
@@ -446,7 +446,7 @@ class ProfileScreen extends StatelessWidget {
               child: Text(
                 'Cancel',
                 style: GoogleFonts.inter(
-                  color: Colors.white.withOpacity(0.7),
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                 ),
               ),
             ),

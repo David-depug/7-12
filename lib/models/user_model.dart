@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../services/streak_history_service.dart';
 
 class UserModel extends ChangeNotifier {
   UserModel({
@@ -44,6 +45,8 @@ class UserModel extends ChangeNotifier {
 
   void incrementStreak() {
     _streakDays += 1;
+    // Also persist today's date in the streak history for the calendar view.
+    StreakHistoryService.addTodayIfNeeded();
     notifyListeners();
   }
 

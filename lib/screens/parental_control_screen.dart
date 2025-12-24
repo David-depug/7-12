@@ -83,14 +83,11 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1B1B1B),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1B1B1B),
         elevation: 0,
         title: Text(
           'Parental Control',
           style: GoogleFonts.inter(
-            color: Colors.white,
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
@@ -98,7 +95,6 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
         leading: IconButton(
           icon: const Icon(
             LucideIcons.menu,
-            color: Colors.white,
             size: 24,
           ),
           onPressed: () {
@@ -150,8 +146,8 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
             style: GoogleFonts.inter(
               fontSize: 28,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+color: Theme.of(context).colorScheme.onSurface,
+              ),
           ),
           const SizedBox(height: 16),
           Text(
@@ -159,7 +155,7 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
               fontSize: 16,
-              color: Colors.white.withOpacity(0.7),
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
             ),
           ),
           const SizedBox(height: 40),
@@ -172,12 +168,12 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Colors.white.withOpacity(0.1),
-                  Colors.white.withOpacity(0.05),
+                  Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  Theme.of(context).colorScheme.primary.withOpacity(0.05),
                 ],
               ),
               border: Border.all(
-                color: Colors.white.withOpacity(0.2),
+                color: Theme.of(context).dividerColor,
                 width: 1,
               ),
             ),
@@ -194,8 +190,8 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
                         style: GoogleFonts.inter(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
+color: Theme.of(context).colorScheme.onSurface,
+              ),
                       ),
                       const SizedBox(height: 20),
                       _buildPasswordField(
@@ -210,7 +206,7 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _setParentPassword,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF7C3AED),
+                            backgroundColor: Theme.of(context).colorScheme.primary,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -222,8 +218,8 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
                                   style: GoogleFonts.inter(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                  ),
+color: Theme.of(context).colorScheme.onSurface,
+              ),
                                 ),
                         ),
                       ),
@@ -265,15 +261,15 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
             style: GoogleFonts.inter(
               fontSize: 28,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+color: Theme.of(context).colorScheme.onSurface,
+              ),
           ),
           const SizedBox(height: 16),
           Text(
             'Enter parent password to access controls',
             style: GoogleFonts.inter(
               fontSize: 16,
-              color: Colors.white.withOpacity(0.7),
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
             ),
           ),
           const SizedBox(height: 40),
@@ -286,12 +282,12 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Colors.white.withOpacity(0.1),
-                  Colors.white.withOpacity(0.05),
+                  Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  Theme.of(context).colorScheme.primary.withOpacity(0.05),
                 ],
               ),
               border: Border.all(
-                color: Colors.white.withOpacity(0.2),
+                color: Theme.of(context).dividerColor,
                 width: 1,
               ),
             ),
@@ -315,7 +311,7 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _authenticateParent,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF7C3AED),
+                            backgroundColor: Theme.of(context).colorScheme.primary,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -327,8 +323,8 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
                                   style: GoogleFonts.inter(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                  ),
+color: Theme.of(context).colorScheme.onSurface,
+              ),
                                 ),
                         ),
                       ),
@@ -503,7 +499,7 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
           ],
         ),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Theme.of(context).dividerColor,
           width: 1,
         ),
       ),
@@ -528,15 +524,15 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
                   style: GoogleFonts.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+color: Theme.of(context).colorScheme.onSurface,
+              ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
                   style: GoogleFonts.inter(
                     fontSize: 14,
-                    color: Colors.white.withOpacity(0.7),
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                   ),
                 ),
               ],
@@ -570,7 +566,7 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
           ],
         ),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Theme.of(context).dividerColor,
           width: 1,
         ),
       ),
@@ -586,8 +582,8 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
                 style: GoogleFonts.inter(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
+color: Theme.of(context).colorScheme.onSurface,
+              ),
               ),
             ],
           ),
@@ -615,7 +611,7 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
           ],
         ),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Theme.of(context).dividerColor,
           width: 1,
         ),
       ),
@@ -627,7 +623,7 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
           labelText: label,
           hintText: hint,
           labelStyle: GoogleFonts.inter(
-            color: Colors.white.withOpacity(0.7),
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
             fontSize: 14,
           ),
           hintStyle: GoogleFonts.inter(
@@ -673,7 +669,7 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
         borderRadius: BorderRadius.circular(8),
         color: Colors.white.withOpacity(0.1),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Theme.of(context).dividerColor,
           width: 1,
         ),
       ),
@@ -716,7 +712,7 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
         ElevatedButton(
           onPressed: onAdd,
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF7C3AED),
+            backgroundColor: Theme.of(context).colorScheme.primary,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),

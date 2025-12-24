@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'constants/app_colors.dart';
 import 'models/mission_model.dart';
@@ -14,6 +15,7 @@ import 'models/parental_control_model.dart';
 import 'models/screen_time_model.dart';
 import 'models/sleep_model.dart';
 import 'models/step_counter_model.dart';
+import 'models/theme_model.dart';
 import 'features/steps/state/step_tracker_state.dart';
 import 'features/steps/ui/screens/step_tracker_screen.dart';
 import 'screens/challenges_screen.dart';
@@ -25,7 +27,11 @@ import 'screens/parental_control_screen.dart';
 import 'screens/analytics_screen.dart';
 import 'screens/mini_games_screen.dart';
 import 'screens/sleep_tracker_screen.dart';
+import 'screens/gad_phq_form_screen.dart'; // Used in optional auto-push (see initState)
+import 'screens/my_assessment_screen.dart';
 import 'services/screen_time_service.dart';
+import 'services/screen_time_notification_service.dart';
+import 'widgets/theme_switcher.dart';
 import 'package:flutter/services.dart'; // للـ MethodChannel
 
 Future<void> main() async {
@@ -50,6 +56,14 @@ Future<void> main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
     debugPrint('Firebase initialized successfully');
+    
+    // Initialize screen time notifications
+    try {
+      await ScreenTimeNotificationService.initialize();
+      debugPrint('Screen time notifications initialized successfully');
+    } catch (e) {
+      debugPrint('Screen time notifications initialization error: $e');
+    }
   } catch (e) {
     debugPrint('Firebase initialization error: $e');
     // Continue even if Firebase fails to initialize
@@ -103,6 +117,7 @@ class MindQuestApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => SleepModel()),
         ChangeNotifierProvider(create: (_) => StepCounterModel()), // Keep for backward compatibility if needed
         ChangeNotifierProvider(create: (_) => StepTrackerState()),
+        ChangeNotifierProvider(create: (_) => ThemeModel()), // Theme management
         ChangeNotifierProvider(create: (_) {
           final screenTimeModel = ScreenTimeModel();
           // Initialize service asynchronously to not block app startup
@@ -112,20 +127,51 @@ class MindQuestApp extends StatelessWidget {
           return screenTimeModel;
         }),
       ],
-      child: MaterialApp(
-        title: 'MindQuest',
-        theme: buildTheme(Brightness.light).copyWith(textTheme: textTheme),
-        darkTheme: buildTheme(Brightness.dark).copyWith(textTheme: textTheme),
-        themeMode: ThemeMode.system,
-        home: const AuthWrapper(),
-        debugShowCheckedModeBanner: false,
+      child: Consumer<ThemeModel>(
+        builder: (context, themeModel, child) {
+          return MaterialApp(
+            title: 'MindQuest',
+            theme: buildTheme(Brightness.light).copyWith(textTheme: textTheme),
+            darkTheme: buildTheme(Brightness.dark).copyWith(textTheme: textTheme),
+            themeMode: themeModel.themeMode,  // Dynamic theme based on user choice
+            home: const AuthWrapper(),
+            debugShowCheckedModeBanner: false,
+          );
+        },
       ),
     );
   }
 }
 
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  @override
+  void initState() {
+    super.initState();
+    // Auto-push the GAD‑7/PHQ‑9 assessment screen on first launch
+    // Users can access the assessment from the navigation drawer anytime
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      
+      // Check if user has completed assessment before
+      final prefs = await SharedPreferences.getInstance();
+      final hasCompletedAssessment = prefs.getBool('has_completed_assessment') ?? false;
+      
+      if (!hasCompletedAssessment && mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => const GadPhqFormScreen(),
+          ),
+        );
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -162,6 +208,7 @@ class _RootNavState extends State<RootNav> {
     const AnalyticsScreen(),
     const SleepTrackerScreen(),
     const StepTrackerScreen(),
+    const MyAssessmentScreen(),
     const ParentalControlScreen(),
     const ProfileScreen(),
   ];
@@ -174,8 +221,9 @@ class _RootNavState extends State<RootNav> {
     _NavItem(icon: LucideIcons.barChart3, label: 'Analytics', index: 4),
     _NavItem(icon: LucideIcons.moon, label: 'Sleep Tracker', index: 5),
     _NavItem(icon: LucideIcons.footprints, label: 'Step Tracker', index: 6),
-    _NavItem(icon: LucideIcons.shield, label: 'Parental', index: 7),
-    _NavItem(icon: LucideIcons.user, label: 'Profile', index: 8),
+    _NavItem(icon: LucideIcons.brain, label: 'My Results', index: 7),
+    _NavItem(icon: LucideIcons.shield, label: 'Parental', index: 8),
+    _NavItem(icon: LucideIcons.user, label: 'Profile', index: 9),
   ];
 
   void _navigateTo(int index) {
@@ -200,12 +248,16 @@ class _RootNavState extends State<RootNav> {
 
   @override
   Widget build(BuildContext context) {
-    final selectedColor = AppColors.purple;
+    final selectedColor = Theme.of(context).brightness == Brightness.dark
+        ? AppColors.purple
+        : AppColors.sereneTeal;
 
     return Scaffold(
       key: rootNavScaffoldKey,
       drawer: Drawer(
-        backgroundColor: const Color(0xFF1B1B1B),
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF1B1B1B)
+            : AppColors.pureWhite,
         child: SafeArea(
           child: Column(
             children: [
@@ -213,10 +265,15 @@ class _RootNavState extends State<RootNav> {
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [
-                      AppColors.purple.withOpacity(0.3),
-                      AppColors.purple.withOpacity(0.1),
-                    ],
+                    colors: Theme.of(context).brightness == Brightness.dark
+                        ? [
+                            AppColors.purple.withOpacity(0.3),
+                            AppColors.purple.withOpacity(0.1),
+                          ]
+                        : [
+                            AppColors.sereneTeal.withOpacity(0.2),
+                            AppColors.sereneTeal.withOpacity(0.05),
+                          ],
                   ),
                 ),
                 child: Row(
@@ -226,8 +283,10 @@ class _RootNavState extends State<RootNav> {
                       height: 50,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(25),
-                        gradient: const LinearGradient(
-                          colors: [AppColors.purple, Color(0xFFF97316)],
+                        gradient: LinearGradient(
+                          colors: Theme.of(context).brightness == Brightness.dark
+                              ? [AppColors.purple, const Color(0xFFF97316)]
+                              : [AppColors.sereneTeal, AppColors.warmSunset],
                         ),
                       ),
                       child: const Icon(
@@ -246,14 +305,18 @@ class _RootNavState extends State<RootNav> {
                             style: GoogleFonts.inter(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white
+                                  : AppColors.deepCharcoal,
                             ),
                           ),
                           Text(
                             'Navigation Menu',
                             style: GoogleFonts.inter(
                               fontSize: 12,
-                              color: Colors.white70,
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white70
+                                  : AppColors.deepCharcoal.withOpacity(0.7),
                             ),
                           ),
                         ],
@@ -262,7 +325,20 @@ class _RootNavState extends State<RootNav> {
                   ],
                 ),
               ),
-              const Divider(color: Colors.white24),
+              Divider(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white24
+                    : AppColors.deepCharcoal.withOpacity(0.1),
+              ),
+              
+              // Theme Switcher
+              const ThemeSwitcher(),
+              Divider(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white24
+                    : AppColors.deepCharcoal.withOpacity(0.1),
+              ),
+              
               Expanded(
                 child: ListView.builder(
                   padding: const EdgeInsets.symmetric(vertical: 8),
@@ -273,13 +349,21 @@ class _RootNavState extends State<RootNav> {
                     return ListTile(
                       leading: Icon(
                         item.icon,
-                        color: isSelected ? selectedColor : Colors.white70,
+                        color: isSelected 
+                            ? selectedColor 
+                            : (Theme.of(context).brightness == Brightness.dark 
+                                ? Colors.white70 
+                                : AppColors.deepCharcoal),
                         size: 24,
                       ),
                       title: Text(
                         item.label,
                         style: GoogleFonts.inter(
-                          color: isSelected ? selectedColor : Colors.white,
+                          color: isSelected 
+                              ? selectedColor 
+                              : (Theme.of(context).brightness == Brightness.dark 
+                                  ? Colors.white 
+                                  : AppColors.deepCharcoal),
                           fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                           fontSize: 16,
                         ),

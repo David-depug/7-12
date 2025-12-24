@@ -6,6 +6,8 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/services.dart';
 import '../services/screen_time_service.dart';
+import '../models/screen_time_settings_model.dart';
+import 'notification_settings_screen.dart';
 import '../main.dart';
 
 
@@ -16,7 +18,7 @@ class AnalyticsScreen extends StatefulWidget {
   State<AnalyticsScreen> createState() => _AnalyticsScreenState();
 }
 
-class _AnalyticsScreenState extends State<AnalyticsScreen> {
+class _AnalyticsScreenState extends State<AnalyticsScreen> with WidgetsBindingObserver {
   bool _hasPermission = false;
   bool _isLoading = false;
   List<Map<String, dynamic>> usageData = [];
@@ -26,7 +28,22 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _checkPermission();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Auto-check permission when user returns to app
+    if (state == AppLifecycleState.resumed && !_hasPermission) {
+      _checkPermission();
+    }
   }
 
   Future<void> _checkPermission() async {
@@ -131,12 +148,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF2A2A2A),
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
           title: Text(
             'Enable Usage Access',
             style: GoogleFonts.inter(
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           content: Column(
@@ -146,28 +163,28 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               Text(
                 'To view real screen time data, please:',
                 style: GoogleFonts.inter(
-                  color: Colors.white.withOpacity(0.7),
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                 ),
               ),
               const SizedBox(height: 12),
               Text(
                 '1. Tap "Open Settings" below',
                 style: GoogleFonts.inter(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                '2. Look for "my_app" in the list',
+                '2. Find "mindquest" or "UpHeal" in the list',
                 style: GoogleFonts.inter(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                '3. If you don\'t see "my_app", scroll down or search',
+                '3. If not visible, scroll down or search',
                 style: GoogleFonts.inter(
                   color: Colors.orange,
                   fontWeight: FontWeight.w600,
@@ -177,16 +194,40 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               Text(
                 '4. Toggle "Permit usage access" ON',
                 style: GoogleFonts.inter(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                '5. Return to the app',
+                '5. Press back to return',
                 style: GoogleFonts.inter(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(LucideIcons.info, color: Theme.of(context).colorScheme.primary, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'The app will auto-detect when permission is granted',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -197,7 +238,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               child: Text(
                 'Cancel',
                 style: GoogleFonts.inter(
-                  color: Colors.white.withOpacity(0.7),
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                 ),
               ),
             ),
@@ -207,7 +248,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 _openUsageStatsSettings();
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF7C3AED),
+                backgroundColor: Theme.of(context).colorScheme.primary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -215,7 +256,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               child: Text(
                 'Open Settings',
                 style: GoogleFonts.inter(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -234,14 +275,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1B1B1B),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1B1B1B),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(
             LucideIcons.menu,
-            color: Colors.white,
             size: 24,
           ),
           onPressed: () {
@@ -252,12 +290,22 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         title: Text(
           'Screen Time Analytics',
           style: GoogleFonts.inter(
-            color: Colors.white,
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
         ),
         actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const NotificationSettingsScreen(),
+                ),
+              ).then((_) => setState(() {})); // Refresh when returning
+            },
+            icon: const Icon(LucideIcons.bell),
+            tooltip: 'Notification Settings',
+          ),
           IconButton(
             onPressed: () async {
               setState(() {
@@ -268,7 +316,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 _isLoading = false;
               });
             },
-            icon: const Icon(LucideIcons.refreshCw, color: Colors.white),
+            icon: const Icon(LucideIcons.refreshCw),
             tooltip: 'Refresh Data',
           ),
         ],
@@ -295,6 +343,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             
             // Overview Cards
             _buildOverviewCards(),
+            const SizedBox(height: 20),
+            
+            // Goal Progress Card
+            _buildGoalProgressCard(),
             const SizedBox(height: 20),
             
             // Focus Score
@@ -326,8 +378,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: const Color(0xFF2A2A2A),
-        border: Border.all(color: const Color(0xFF3A3A3A)),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -337,7 +389,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             style: GoogleFonts.inter(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 12),
@@ -379,9 +431,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
-          color: isSelected ? const Color(0xFF7C3AED) : const Color(0xFF3A3A3A),
+          color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outline,
           border: Border.all(
-            color: isSelected ? const Color(0xFF7C3AED) : const Color(0xFF4A4A4A),
+            color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).dividerColor,
           ),
         ),
         child: Row(
@@ -390,7 +442,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             Icon(
               icon,
               size: 14,
-              color: isSelected ? Colors.white : Colors.grey,
+              color: isSelected ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
             ),
             const SizedBox(width: 4),
             Text(
@@ -398,7 +450,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               style: GoogleFonts.inter(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.white : Colors.grey,
+                color: isSelected ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
               ),
             ),
           ],
@@ -435,15 +487,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           const SizedBox(height: 12),
           Text(
             'Permission Status: ${_hasPermission ? "Granted" : "Not Granted"}',
-            style: GoogleFonts.inter(fontSize: 12, color: Colors.white),
+            style: GoogleFonts.inter(fontSize: 12, color: Theme.of(context).colorScheme.onSurface),
           ),
           Text(
             'Data Count: ${usageData.length} apps',
-            style: GoogleFonts.inter(fontSize: 12, color: Colors.white),
+            style: GoogleFonts.inter(fontSize: 12, color: Theme.of(context).colorScheme.onSurface),
           ),
           Text(
             'Total Time: ${_formatTime(totalScreenTime)}',
-            style: GoogleFonts.inter(fontSize: 12, color: Colors.white),
+            style: GoogleFonts.inter(fontSize: 12, color: Theme.of(context).colorScheme.onSurface),
           ),
           const SizedBox(height: 8),
           ElevatedButton(
@@ -471,7 +523,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             ),
             child: Text(
               'Validate Data Accuracy',
-              style: GoogleFonts.inter(fontSize: 12, color: Colors.white),
+              style: GoogleFonts.inter(fontSize: 12, color: Theme.of(context).colorScheme.onSurface),
             ),
           ),
         ],
@@ -488,13 +540,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.orange.withOpacity(0.2),
-            Colors.orange.withOpacity(0.1),
+            Theme.of(context).colorScheme.primary.withOpacity(0.2),
+            Theme.of(context).colorScheme.primary.withOpacity(0.1),
           ],
         ),
         border: Border.all(
-          color: Colors.orange.withOpacity(0.3),
-          width: 1,
+          color: const Color(0xFF7C3AED).withOpacity(0.3),
+          width: 2,
         ),
       ),
       child: ClipRRect(
@@ -508,33 +560,41 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 height: 80,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(40),
-                  color: Colors.orange.withOpacity(0.2),
+                  color: const Color(0xFF7C3AED).withOpacity(0.2),
                 ),
                 child: const Icon(
-                  LucideIcons.shield,
-                  color: Colors.orange,
+                  LucideIcons.smartphone,
+                  color: Color(0xFF7C3AED),
                   size: 40,
                 ),
               ),
               const SizedBox(height: 16),
               Text(
-                'Enable Usage Access',
+                'Enable Screen Time Access',
                 style: GoogleFonts.inter(
-                  fontSize: 20,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                'To view real screen time data, please enable usage access permission.',
+                'Grant permission to view your usage data and track screen time.',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.inter(
                   fontSize: 14,
-                  color: Colors.white.withOpacity(0.7),
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                 ),
               ),
               const SizedBox(height: 20),
+              // Features list
+              _buildFeatureItem(LucideIcons.barChart3, 'View detailed usage statistics'),
+              const SizedBox(height: 8),
+              _buildFeatureItem(LucideIcons.clock, 'Track time spent on apps'),
+              const SizedBox(height: 8),
+              _buildFeatureItem(LucideIcons.target, 'Set and achieve daily goals'),
+              const SizedBox(height: 24),
+              // Primary button
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -549,19 +609,51 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
                       )
-                    : const Icon(LucideIcons.shield),
+                    : const Icon(LucideIcons.externalLink),
                   label: Text(
-                    _isLoading ? 'Requesting...' : 'Enable Usage Access',
+                    _isLoading ? 'Opening Settings...' : 'Enable Permission',
                     style: GoogleFonts.inter(
                       fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Check again button
+              SizedBox(
+                width: double.infinity,
+                height: 44,
+                child: TextButton.icon(
+                  onPressed: _isLoading ? null : () async {
+                    setState(() {
+                      _isLoading = true;
+                    });
+                    await _checkPermission();
+                    setState(() {
+                      _isLoading = false;
+                    });
+                  },
+                  icon: const Icon(LucideIcons.refreshCw, size: 18),
+                  label: Text(
+                    'Already Enabled? Check Again',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF7C3AED),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: const Color(0xFF7C3AED).withOpacity(0.3)),
                     ),
                   ),
                 ),
@@ -570,6 +662,31 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildFeatureItem(IconData icon, String text) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(6),
+            color: const Color(0xFF7C3AED).withOpacity(0.2),
+          ),
+          child: Icon(icon, color: Theme.of(context).colorScheme.primary, size: 16),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              color: Colors.white.withOpacity(0.9),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -605,7 +722,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             title: timeLabel,
             value: _formatTime(totalScreenTime),
             icon: LucideIcons.clock,
-            color: const Color(0xFF7C3AED),
+            color: Theme.of(context).colorScheme.primary,
           ),
         ),
         const SizedBox(width: 12),
@@ -635,12 +752,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.1),
-            Colors.white.withOpacity(0.05),
+            Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            Theme.of(context).colorScheme.primary.withOpacity(0.05),
           ],
         ),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Theme.of(context).dividerColor,
           width: 1,
         ),
       ),
@@ -665,18 +782,167 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             style: GoogleFonts.inter(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           Text(
             title,
             style: GoogleFonts.inter(
               fontSize: 14,
-              color: Colors.white.withOpacity(0.7),
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildGoalProgressCard() {
+    return FutureBuilder<ScreenTimeSettingsModel>(
+      future: ScreenTimeSettingsModel.load(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const SizedBox.shrink();
+        }
+
+        final settings = snapshot.data!;
+        final goalSeconds = settings.dailyGoalSeconds;
+        final usagePercentage = goalSeconds > 0
+            ? (totalScreenTime / goalSeconds * 100).clamp(0, 100).toInt()
+            : 0;
+        
+        final isOverGoal = totalScreenTime > goalSeconds;
+        final streak = settings.currentStreak;
+
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isOverGoal
+                  ? [Colors.orange.withOpacity(0.2), Colors.orange.withOpacity(0.1)]
+                  : [const Color(0xFF7C3AED).withOpacity(0.2), const Color(0xFF7C3AED).withOpacity(0.1)],
+            ),
+            border: Border.all(
+              color: isOverGoal ? Colors.orange.withOpacity(0.3) : const Color(0xFF7C3AED).withOpacity(0.3),
+              width: 2,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      color: isOverGoal ? Colors.orange.withOpacity(0.3) : const Color(0xFF7C3AED).withOpacity(0.3),
+                    ),
+                    child: Icon(
+                      LucideIcons.target,
+                      color: isOverGoal ? Colors.orange : const Color(0xFF7C3AED),
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Daily Goal Progress',
+                          style: GoogleFonts.inter(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                        Text(
+                          '${_formatTime(totalScreenTime)} / ${_formatTime(goalSeconds)}',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (streak > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.orange.withOpacity(0.2),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(LucideIcons.flame, color: Colors.orange, size: 16),
+                          const SizedBox(width: 4),
+                          Text(
+                            '$streak day${streak > 1 ? 's' : ''}',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LinearProgressIndicator(
+                  value: usagePercentage / 100,
+                  minHeight: 8,
+                  backgroundColor: const Color(0xFF3A3A3A),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    isOverGoal ? Colors.orange : const Color(0xFF7C3AED),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    isOverGoal ? '${usagePercentage}% - Over Goal' : '$usagePercentage% of goal',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: isOverGoal ? Colors.orange : const Color(0xFF7C3AED),
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const NotificationSettingsScreen(),
+                        ),
+                      ).then((_) => setState(() {}));
+                    },
+                    icon: const Icon(LucideIcons.settings, size: 14),
+                    label: Text(
+                      'Adjust Goal',
+                      style: GoogleFonts.inter(fontSize: 12),
+                    ),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.white70,
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -690,12 +956,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.1),
-            Colors.white.withOpacity(0.05),
+            Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            Theme.of(context).colorScheme.primary.withOpacity(0.05),
           ],
         ),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Theme.of(context).dividerColor,
           width: 1,
         ),
       ),
@@ -714,7 +980,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     style: GoogleFonts.inter(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ],
@@ -739,7 +1005,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         style: GoogleFonts.inter(
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                     ),
@@ -752,7 +1018,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 textAlign: TextAlign.center,
                 style: GoogleFonts.inter(
                   fontSize: 16,
-                  color: Colors.white.withOpacity(0.7),
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                 ),
               ),
             ],
@@ -771,12 +1037,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.1),
-            Colors.white.withOpacity(0.05),
+            Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            Theme.of(context).colorScheme.primary.withOpacity(0.05),
           ],
         ),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Theme.of(context).dividerColor,
           width: 1,
         ),
       ),
@@ -792,7 +1058,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 style: GoogleFonts.inter(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ],
@@ -838,7 +1104,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                             return Text(
                               days[value.toInt() % 7],
                               style: GoogleFonts.inter(
-                                color: Colors.white.withOpacity(0.7),
+                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                                 fontSize: 12,
                               ),
                             );
@@ -852,7 +1118,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                             return Text(
                               '${value.toInt()}h',
                               style: GoogleFonts.inter(
-                                color: Colors.white.withOpacity(0.7),
+                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                                 fontSize: 12,
                               ),
                             );
@@ -865,14 +1131,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       LineChartBarData(
                         spots: spots,
                         isCurved: true,
-                        color: const Color(0xFF7C3AED),
+                        color: Theme.of(context).colorScheme.primary,
                         barWidth: 3,
                         dotData: FlDotData(
                           show: true,
                           getDotPainter: (spot, percent, barData, index) {
                             return FlDotCirclePainter(
                               radius: 4,
-                              color: const Color(0xFF7C3AED),
+                              color: Theme.of(context).colorScheme.primary,
                               strokeWidth: 2,
                               strokeColor: Colors.white,
                             );
@@ -903,12 +1169,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.1),
-            Colors.white.withOpacity(0.05),
+            Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            Theme.of(context).colorScheme.primary.withOpacity(0.05),
           ],
         ),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Theme.of(context).dividerColor,
           width: 1,
         ),
       ),
@@ -924,7 +1190,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 style: GoogleFonts.inter(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ],
@@ -950,7 +1216,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       app['appName'] as String,
                       style: GoogleFonts.inter(
                         fontSize: 14,
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                   ),
@@ -959,7 +1225,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ],
@@ -982,12 +1248,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.1),
-            Colors.white.withOpacity(0.05),
+            Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            Theme.of(context).colorScheme.primary.withOpacity(0.05),
           ],
         ),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Theme.of(context).dividerColor,
           width: 1,
         ),
       ),
@@ -1003,7 +1269,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 style: GoogleFonts.inter(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ],
@@ -1028,14 +1294,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         style: GoogleFonts.inter(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       Text(
                         app['time'],
                         style: GoogleFonts.inter(
                           fontSize: 12,
-                          color: Colors.white.withOpacity(0.7),
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                         ),
                       ),
                     ],
@@ -1047,7 +1313,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Block ${app['name']} functionality coming soon!'),
-                        backgroundColor: const Color(0xFF7C3AED),
+                        backgroundColor: Theme.of(context).colorScheme.primary,
                       ),
                     );
                   },
@@ -1074,12 +1340,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.1),
-            Colors.white.withOpacity(0.05),
+            Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            Theme.of(context).colorScheme.primary.withOpacity(0.05),
           ],
         ),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Theme.of(context).dividerColor,
           width: 1,
         ),
       ),
@@ -1095,7 +1361,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 style: GoogleFonts.inter(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ],

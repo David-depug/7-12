@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../models/mission_model.dart';
 import '../models/user_model.dart';
 import '../main.dart';
+import 'streak_history_page.dart';
 import 'focus_blocking_screen.dart';
 
 // Helper class to hold selected data for minimal rebuilds
@@ -54,14 +55,11 @@ class _HomeScreenState extends State<HomeScreen> {
         final user = data.user;
     
     return Scaffold(
-      backgroundColor: const Color(0xFF1B1B1B),
         appBar: AppBar(
-        backgroundColor: const Color(0xFF1B1B1B),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(
             LucideIcons.menu,
-            color: Colors.white,
             size: 24,
           ),
           onPressed: () {
@@ -72,7 +70,6 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Text(
           'MindQuest',
           style: GoogleFonts.inter(
-            color: Colors.white,
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
@@ -96,7 +93,6 @@ class _HomeScreenState extends State<HomeScreen> {
             child: IconButton(
               icon: const Icon(
                 LucideIcons.bell,
-                color: Colors.white,
                 size: 20,
               ),
               onPressed: () {},
@@ -193,12 +189,12 @@ class _HomeScreenState extends State<HomeScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.1),
-            Colors.white.withOpacity(0.05),
+            Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            Theme.of(context).colorScheme.primary.withOpacity(0.05),
           ],
         ),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Theme.of(context).dividerColor,
           width: 1,
         ),
       ),
@@ -214,8 +210,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 height: 60,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(30),
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF7C3AED), Color(0xFFF97316)],
+                  gradient: LinearGradient(
+                    colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.secondary],
                   ),
                 ),
                 child: const Icon(
@@ -234,7 +230,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: GoogleFonts.inter(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -242,7 +238,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       'Ready to focus and grow?',
                       style: GoogleFonts.inter(
                         fontSize: 14,
-                        color: Colors.white.withOpacity(0.7),
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                       ),
                     ),
                   ],
@@ -260,11 +256,20 @@ class _HomeScreenState extends State<HomeScreen> {
     return Row(
       children: [
         Expanded(
-          child: _buildStatCard(
-            icon: LucideIcons.flame,
-            label: 'Streak',
-            value: '${user.streakDays}',
-            color: const Color(0xFFFF6B35),
+          child: GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const StreakHistoryPage(),
+                ),
+              );
+            },
+            child: _buildStatCard(
+              icon: LucideIcons.flame,
+              label: 'Streak',
+              value: '${user.streakDays}',
+              color: const Color(0xFFFF6B35),
+            ),
           ),
         ),
         const SizedBox(width: 12),
@@ -303,12 +308,12 @@ class _HomeScreenState extends State<HomeScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.1),
-            Colors.white.withOpacity(0.05),
+            Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            Theme.of(context).colorScheme.primary.withOpacity(0.05),
           ],
         ),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Theme.of(context).dividerColor,
           width: 1,
         ),
       ),
@@ -333,14 +338,14 @@ class _HomeScreenState extends State<HomeScreen> {
             style: GoogleFonts.inter(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           Text(
             label,
             style: GoogleFonts.inter(
               fontSize: 12,
-              color: Colors.white.withOpacity(0.7),
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
             ),
           ),
         ],
@@ -361,12 +366,12 @@ class _HomeScreenState extends State<HomeScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.1),
-            Colors.white.withOpacity(0.05),
+            Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            Theme.of(context).colorScheme.primary.withOpacity(0.05),
           ],
         ),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Theme.of(context).dividerColor,
           width: 1,
         ),
       ),
@@ -375,14 +380,14 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Row(
             children: [
-              Icon(icon, color: Colors.white, size: 20),
+              Icon(icon, color: Theme.of(context).colorScheme.onSurface, size: 20),
               const SizedBox(width: 8),
               Text(
                 title,
                 style: GoogleFonts.inter(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ],
@@ -400,9 +405,9 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        color: Colors.white.withOpacity(0.05),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Theme.of(context).dividerColor,
           width: 1,
         ),
       ),
@@ -413,11 +418,11 @@ class _HomeScreenState extends State<HomeScreen> {
             height: 40,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
-              color: const Color(0xFF7C3AED).withOpacity(0.2),
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
             ),
-            child: const Icon(
+            child: Icon(
               LucideIcons.target,
-              color: Color(0xFF7C3AED),
+              color: Theme.of(context).colorScheme.primary,
               size: 20,
             ),
           ),
@@ -431,7 +436,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -439,7 +444,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   mission.description,
                   style: GoogleFonts.inter(
                     fontSize: 12,
-                    color: Colors.white.withOpacity(0.7),
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                   ),
                 ),
               ],
@@ -450,7 +455,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onChanged: (value) {
               context.read<MissionsModel>().toggleMission(mission.id);
             },
-            activeColor: const Color(0xFF7C3AED),
+            activeColor: Theme.of(context).colorScheme.primary,
           ),
         ],
       ),
@@ -466,12 +471,12 @@ class _HomeScreenState extends State<HomeScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.1),
-            Colors.white.withOpacity(0.05),
+            Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            Theme.of(context).colorScheme.primary.withOpacity(0.05),
           ],
         ),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Theme.of(context).dividerColor,
           width: 1,
         ),
       ),
@@ -502,7 +507,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: GoogleFonts.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -510,7 +515,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   'Tip: Short sprints beat long grinds. Try a 10m focus now.',
                   style: GoogleFonts.inter(
                     fontSize: 14,
-                    color: Colors.white.withOpacity(0.7),
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                   ),
                 ),
               ],
@@ -554,12 +559,12 @@ class _HomeScreenState extends State<HomeScreen> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Colors.white.withOpacity(0.1),
-              Colors.white.withOpacity(0.05),
+              Theme.of(context).colorScheme.primary.withOpacity(0.1),
+              Theme.of(context).colorScheme.primary.withOpacity(0.05),
             ],
           ),
           border: Border.all(
-            color: Colors.white.withOpacity(0.2),
+            color: Theme.of(context).dividerColor,
             width: 1,
           ),
         ),
@@ -588,7 +593,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: GoogleFonts.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -596,15 +601,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     subtitle,
                     style: GoogleFonts.inter(
                       fontSize: 12,
-                      color: Colors.white70,
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(
+            Icon(
               LucideIcons.arrowRight,
-              color: Colors.white70,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
               size: 20,
             ),
           ],
@@ -618,31 +623,75 @@ class _HomeScreenState extends State<HomeScreen> {
       width: double.infinity,
       height: 50,
       child: ElevatedButton.icon(
-                  onPressed: () {
-                    final completed = context.read<MissionsModel>().completedCount;
-                    if (completed > 0) {
-                      context.read<UserModel>().addXp(completed * 10);
-                      context.read<UserModel>().incrementStreak();
-                      ScaffoldMessenger.of(context).showSnackBar(
+        onPressed: () async {
+          final missionsModel = context.read<MissionsModel>();
+          final completed = missionsModel.completedCount;
+
+          if (completed == 0) {
+            ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Great work! +${completed * 10} XP • Streak +1'),
+                content: const Text(
+                  'Complete at least one mission to claim XP.',
+                ),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+            return;
+          }
+
+          // Always grant XP based on completed missions
+          context.read<UserModel>().addXp(completed * 10);
+
+          // Streak only upgrades when ALL daily missions are completed,
+          // and only once per day.
+          if (!missionsModel.allDailyMissionsCompleted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text(
+                  'Great job! XP claimed. Complete all daily missions to increase your streak.',
+                ),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+            return;
+          }
+
+          final canUpgradeToday =
+              await missionsModel.markStreakUpgradedForTodayIfNeeded();
+
+          if (canUpgradeToday) {
+            context.read<UserModel>().incrementStreak();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Amazing! All missions done • Streak +1 • +${completed * 10} XP',
+                ),
                 backgroundColor: const Color(0xFF4CAF50),
                 behavior: SnackBarBehavior.floating,
               ),
-                      );
-                    }
-                  },
-                  icon: const Icon(LucideIcons.sparkles),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text(
+                  'XP claimed! Your streak has already been counted for today.',
+                ),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        },
+        icon: const Icon(LucideIcons.sparkles),
         label: Text(
           'Claim Daily XP',
           style: GoogleFonts.inter(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: Colors.white,
           ),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF7C3AED),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),

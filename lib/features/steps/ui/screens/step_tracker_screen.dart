@@ -6,9 +6,31 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../../../constants/app_colors.dart';
 import '../../../../main.dart';
 import '../../state/step_tracker_state.dart';
+import '../../domain/models/step_data.dart';
 import '../widgets/step_permission_widget.dart';
 import '../widgets/step_progress_card.dart';
 import '../widgets/step_stat_card.dart';
+
+/// Data class for Selector to minimize rebuilds
+class _StepTrackerScreenData {
+  final bool isLoading;
+  final bool isInitialized;
+  final bool hasPermission;
+  final String? errorMessage;
+  final int todayStepCount;
+  final int dailyGoal;
+  final StepData? todaySteps;
+
+  _StepTrackerScreenData({
+    required this.isLoading,
+    required this.isInitialized,
+    required this.hasPermission,
+    required this.errorMessage,
+    required this.todayStepCount,
+    required this.dailyGoal,
+    required this.todaySteps,
+  });
+}
 
 /// Main step tracking screen
 /// Displays step data, charts, and statistics
@@ -29,6 +51,7 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> with WidgetsBindi
     WidgetsBinding.instance.addObserver(this);
     // Initialize step tracking when screen is first shown
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return; // Prevent accessing context if widget is disposed
       final state = context.read<StepTrackerState>();
       if (!state.isInitialized) {
         state.initialize();
@@ -45,58 +68,69 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> with WidgetsBindi
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // When app resumes (e.g., after permission dialog), re-check permissions
-    if (state == AppLifecycleState.resumed) {
+    // Only refresh if not already initialized to avoid unnecessary refreshes
+    if (state == AppLifecycleState.resumed && mounted) {
       final stepState = context.read<StepTrackerState>();
-      // Re-check permissions and re-initialize if needed
-      stepState.refresh();
+      // Only refresh if not initialized or if permission might have changed
+      if (!stepState.isInitialized) {
+        stepState.initialize();
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1B1B1B),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1B1B1B),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(LucideIcons.menu, color: Colors.white, size: 24),
+          icon: const Icon(LucideIcons.menu, size: 24),
           onPressed: () => rootNavScaffoldKey.currentState?.openDrawer(),
           tooltip: 'Menu',
         ),
         title: Text(
           'Step Tracker',
           style: GoogleFonts.inter(
-            color: Colors.white,
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(LucideIcons.refreshCw, color: Colors.white),
+            icon: const Icon(LucideIcons.refreshCw),
             onPressed: () {
-              context.read<StepTrackerState>().refresh();
+              if (mounted) {
+                context.read<StepTrackerState>().refresh();
+              }
             },
             tooltip: 'Refresh',
           ),
         ],
       ),
-      body: Consumer<StepTrackerState>(
-        builder: (context, state, _) {
-          if (state.isLoading && !state.isInitialized) {
+      body: Selector<StepTrackerState, _StepTrackerScreenData>(
+        selector: (_, state) => _StepTrackerScreenData(
+          isLoading: state.isLoading,
+          isInitialized: state.isInitialized,
+          hasPermission: state.hasPermission,
+          errorMessage: state.errorMessage,
+          todayStepCount: state.todayStepCount,
+          dailyGoal: state.dailyGoal,
+          todaySteps: state.todaySteps,
+        ),
+        builder: (context, data, _) {
+          if (data.isLoading && !data.isInitialized) {
             return const Center(
               child: CircularProgressIndicator(color: AppColors.purple),
             );
           }
 
-          if (!state.hasPermission) {
+          if (!data.hasPermission) {
             return SingleChildScrollView(
-              child: StepPermissionWidget(state: state),
+              child: StepPermissionWidget(state: context.read<StepTrackerState>()),
             );
           }
 
-          if (state.errorMessage != null) {
+          if (data.errorMessage != null) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -108,13 +142,13 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> with WidgetsBindi
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    state.errorMessage!,
-                    style: GoogleFonts.inter(color: Colors.white70),
+                    data.errorMessage!,
+                    style: GoogleFonts.inter(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7)),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () => state.refresh(),
+                    onPressed: () => context.read<StepTrackerState>().refresh(),
                     child: const Text('Retry'),
                   ),
                 ],
@@ -122,17 +156,17 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> with WidgetsBindi
             );
           }
 
-          return _buildContent(context, state);
+          return _buildContent(context, context.read<StepTrackerState>(), data);
         },
       ),
     );
   }
 
-  Widget _buildContent(BuildContext context, StepTrackerState state) {
-    final stepCount = state.todayStepCount;
-    final goal = state.dailyGoal;
-    final progress = state.progressPercentage / 100;
-    final todaySteps = state.todaySteps;
+  Widget _buildContent(BuildContext context, StepTrackerState state, _StepTrackerScreenData data) {
+    final stepCount = data.todayStepCount;
+    final goal = data.dailyGoal;
+    final progress = (stepCount / goal * 100).clamp(0, 100) / 100;
+    final todaySteps = data.todaySteps;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -153,7 +187,7 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> with WidgetsBindi
           const SizedBox(height: 20),
 
           // Period Selector
-          _buildPeriodSelector(),
+          _buildPeriodSelector(context),
           const SizedBox(height: 20),
 
           // Statistics Cards
@@ -183,12 +217,12 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> with WidgetsBindi
         borderRadius: BorderRadius.circular(16),
         gradient: LinearGradient(
           colors: [
-            Colors.white.withOpacity(0.1),
-            Colors.white.withOpacity(0.05),
+            Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            Theme.of(context).colorScheme.primary.withOpacity(0.05),
           ],
         ),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Theme.of(context).dividerColor,
           width: 1,
         ),
       ),
@@ -198,7 +232,7 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> with WidgetsBindi
           Text(
             'Quick Actions',
             style: GoogleFonts.inter(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.onSurface,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
@@ -213,7 +247,7 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> with WidgetsBindi
                   label: const Text('Add Steps'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.purple,
-                    foregroundColor: Colors.white,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                 ),
@@ -227,8 +261,8 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> with WidgetsBindi
                   icon: const Icon(LucideIcons.target),
                   label: const Text('Set to Goal'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white70),
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                    side: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7)),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                 ),
@@ -245,7 +279,7 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> with WidgetsBindi
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF2A2A2A),
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
         title: Text(
           'Add Steps',
           style: GoogleFonts.inter(color: Colors.white),
@@ -253,15 +287,15 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> with WidgetsBindi
         content: TextField(
           controller: controller,
           keyboardType: TextInputType.number,
-          style: GoogleFonts.inter(color: Colors.white),
+          style: GoogleFonts.inter(color: Theme.of(context).colorScheme.onSurface),
           decoration: InputDecoration(
             labelText: 'Number of steps',
-            labelStyle: GoogleFonts.inter(color: Colors.white70),
-            enabledBorder: const UnderlineInputBorder(
-              borderSide: BorderSide(color: Colors.white70),
+            labelStyle: GoogleFonts.inter(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7)),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7)),
             ),
-            focusedBorder: const UnderlineInputBorder(
-              borderSide: BorderSide(color: AppColors.purple),
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
             ),
           ),
         ),
@@ -270,7 +304,7 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> with WidgetsBindi
             onPressed: () => Navigator.pop(context),
             child: Text(
               'Cancel',
-              style: GoogleFonts.inter(color: Colors.white70),
+              style: GoogleFonts.inter(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7)),
             ),
           ),
           TextButton(
@@ -283,7 +317,7 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> with WidgetsBindi
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Added $steps steps! 🚶'),
-                      backgroundColor: AppColors.purple,
+                      backgroundColor: Theme.of(context).colorScheme.primary,
                       behavior: SnackBarBehavior.floating,
                     ),
                   );
@@ -292,7 +326,7 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> with WidgetsBindi
             },
             child: Text(
               'Add',
-              style: GoogleFonts.inter(color: AppColors.purple),
+              style: GoogleFonts.inter(color: Theme.of(context).colorScheme.primary),
             ),
           ),
         ],
@@ -300,24 +334,24 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> with WidgetsBindi
     );
   }
 
-  Widget _buildPeriodSelector() {
+  Widget _buildPeriodSelector(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: Colors.white.withOpacity(0.1),
+        color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
       ),
       child: Row(
         children: [
-          _buildPeriodButton('Daily', 'daily'),
-          _buildPeriodButton('Weekly', 'weekly'),
-          _buildPeriodButton('Monthly', 'monthly'),
+          _buildPeriodButton(context, 'Daily', 'daily'),
+          _buildPeriodButton(context, 'Weekly', 'weekly'),
+          _buildPeriodButton(context, 'Monthly', 'monthly'),
         ],
       ),
     );
   }
 
-  Widget _buildPeriodButton(String label, String period) {
+  Widget _buildPeriodButton(BuildContext context, String label, String period) {
     final isSelected = _selectedPeriod == period;
     return Expanded(
       child: GestureDetector(
@@ -326,13 +360,13 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> with WidgetsBindi
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
-            color: isSelected ? AppColors.purple : Colors.transparent,
+            color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
           ),
           child: Text(
             label,
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
-              color: isSelected ? Colors.white : Colors.white70,
+              color: isSelected ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
@@ -342,26 +376,27 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> with WidgetsBindi
   }
 
   Widget _buildStatisticsCards(StepTrackerState state) {
-    final now = DateTime.now();
-    DateTime startDate;
+    try {
+      final now = DateTime.now();
+      DateTime startDate;
 
-    switch (_selectedPeriod) {
-      case 'daily':
-        startDate = DateTime(now.year, now.month, now.day);
-        break;
-      case 'weekly':
-        startDate = now.subtract(Duration(days: now.weekday - 1));
-        break;
-      case 'monthly':
-        startDate = DateTime(now.year, now.month, 1);
-        break;
-      default:
-        startDate = now.subtract(const Duration(days: 7));
-    }
+      switch (_selectedPeriod) {
+        case 'daily':
+          startDate = DateTime(now.year, now.month, now.day);
+          break;
+        case 'weekly':
+          startDate = now.subtract(Duration(days: now.weekday - 1));
+          break;
+        case 'monthly':
+          startDate = DateTime(now.year, now.month, 1);
+          break;
+        default:
+          startDate = now.subtract(const Duration(days: 7));
+      }
 
-    final totalSteps = state.getTotalStepsForPeriod(startDate, now);
-    final avgSteps = state.getAverageStepsForPeriod(startDate, now);
-    final steps = state.getStepsForPeriod(startDate, now);
+      final totalSteps = state.getTotalStepsForPeriod(startDate, now);
+      final avgSteps = state.getAverageStepsForPeriod(startDate, now);
+      final steps = state.getStepsForPeriod(startDate, now);
 
     return Row(
       children: [
@@ -390,46 +425,73 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> with WidgetsBindi
         ),
       ],
     );
+    } catch (e) {
+      debugPrint('Error building statistics: $e');
+      return const SizedBox.shrink();
+    }
   }
 
   Widget _buildStepChart(StepTrackerState state) {
-    final now = DateTime.now();
-    List chartData;
+    try {
+      final now = DateTime.now();
+      List chartData;
 
-    switch (_selectedPeriod) {
-      case 'daily':
-        chartData = [if (state.todaySteps != null) state.todaySteps!];
-        break;
-      case 'weekly':
-        final startDate = now.subtract(Duration(days: now.weekday - 1));
-        chartData = state.getStepsForPeriod(startDate, now);
-        break;
-      case 'monthly':
-        final startDate = DateTime(now.year, now.month, 1);
-        chartData = state.getStepsForPeriod(startDate, now);
-        break;
-      default:
-        chartData = [];
-    }
+      switch (_selectedPeriod) {
+        case 'daily':
+          chartData = [if (state.todaySteps != null) state.todaySteps!];
+          break;
+        case 'weekly':
+          final startDate = now.subtract(Duration(days: now.weekday - 1));
+          chartData = state.getStepsForPeriod(startDate, now);
+          break;
+        case 'monthly':
+          final startDate = DateTime(now.year, now.month, 1);
+          chartData = state.getStepsForPeriod(startDate, now);
+          break;
+        default:
+          chartData = [];
+      }
 
-    if (chartData.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(40),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          color: Colors.white.withOpacity(0.05),
-        ),
-        child: Center(
-          child: Text(
-            'No data available',
-            style: GoogleFonts.inter(color: Colors.white70),
+      if (chartData.isEmpty) {
+        return Container(
+          padding: const EdgeInsets.all(40),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
           ),
-        ),
-      );
-    }
+          child: Center(
+            child: Text(
+              'No data available',
+              style: GoogleFonts.inter(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7)),
+            ),
+          ),
+        );
+      }
 
-    final maxSteps = chartData.map((d) => d.steps).reduce((a, b) => a > b ? a : b);
-    final maxY = ((maxSteps / 1000).ceil() * 1000).toDouble();
+      // Limit chart data to prevent performance issues (max 30 points)
+      final limitedChartData = chartData.length > 30 
+          ? chartData.sublist(chartData.length - 30) 
+          : chartData;
+
+      // Safety check for empty data
+      if (limitedChartData.isEmpty) {
+        return Container(
+          padding: const EdgeInsets.all(40),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+          ),
+          child: Center(
+            child: Text(
+              'No data available',
+              style: GoogleFonts.inter(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7)),
+            ),
+          ),
+        );
+      }
+
+      final maxSteps = limitedChartData.map((d) => d.steps).reduce((a, b) => a > b ? a : b);
+      final maxY = maxSteps > 0 ? ((maxSteps / 1000).ceil() * 1000).toDouble() : 1000.0;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -437,12 +499,12 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> with WidgetsBindi
         borderRadius: BorderRadius.circular(16),
         gradient: LinearGradient(
           colors: [
-            Colors.white.withOpacity(0.1),
-            Colors.white.withOpacity(0.05),
+            Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            Theme.of(context).colorScheme.primary.withOpacity(0.05),
           ],
         ),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Theme.of(context).dividerColor,
           width: 1,
         ),
       ),
@@ -452,7 +514,7 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> with WidgetsBindi
           Text(
             'Step Chart',
             style: GoogleFonts.inter(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.onSurface,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
@@ -467,16 +529,16 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> with WidgetsBindi
                 borderData: FlBorderData(show: false),
                 lineBarsData: [
                   LineChartBarData(
-                    spots: chartData.asMap().entries.map((entry) {
+                    spots: limitedChartData.asMap().entries.map((entry) {
                       return FlSpot(entry.key.toDouble(), entry.value.steps.toDouble());
                     }).toList(),
                     isCurved: true,
-                    color: AppColors.purple,
+                    color: Theme.of(context).colorScheme.primary,
                     barWidth: 3,
                     dotData: const FlDotData(show: true),
                     belowBarData: BarAreaData(
                       show: true,
-                      color: AppColors.purple.withOpacity(0.2),
+                      color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
                     ),
                   ),
                 ],
@@ -488,6 +550,22 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> with WidgetsBindi
         ],
       ),
     );
+    } catch (e) {
+      debugPrint('Error building chart: $e');
+      return Container(
+        padding: const EdgeInsets.all(40),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        ),
+        child: Center(
+          child: Text(
+            'Unable to display chart',
+            style: GoogleFonts.inter(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7)),
+          ),
+        ),
+      );
+    }
   }
 
   Widget _buildRecentHistory(StepTrackerState state) {
@@ -504,27 +582,27 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> with WidgetsBindi
         Text(
           'Recent History',
           style: GoogleFonts.inter(
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.onSurface,
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: 12),
-        ...recentSteps.map((data) => _buildHistoryItem(data)),
+        ...recentSteps.map((data) => _buildHistoryItem(context, data)),
       ],
     );
   }
 
-  Widget _buildHistoryItem(data) {
+  Widget _buildHistoryItem(BuildContext context, data) {
     final dateStr = '${data.date.day}/${data.date.month}/${data.date.year}';
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: Colors.white.withOpacity(0.05),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
           width: 1,
         ),
       ),
@@ -537,7 +615,7 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> with WidgetsBindi
               Text(
                 dateStr,
                 style: GoogleFonts.inter(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
@@ -546,7 +624,7 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> with WidgetsBindi
               Text(
                 '${data.distance.toStringAsFixed(2)} km • ${data.calories} cal',
                 style: GoogleFonts.inter(
-                  color: Colors.white70,
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                   fontSize: 12,
                 ),
               ),
@@ -555,7 +633,7 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> with WidgetsBindi
           Text(
             '${data.steps} steps',
             style: GoogleFonts.inter(
-              color: AppColors.purple,
+              color: Theme.of(context).colorScheme.primary,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),

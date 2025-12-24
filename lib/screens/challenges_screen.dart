@@ -10,14 +10,11 @@ class ChallengesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1B1B1B),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1B1B1B),
         elevation: 0,
         title: Text(
           'Challenges',
           style: GoogleFonts.inter(
-            color: Colors.white,
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
@@ -25,7 +22,6 @@ class ChallengesScreen extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(
             LucideIcons.menu,
-            color: Colors.white,
             size: 24,
           ),
           onPressed: () {
@@ -52,7 +48,6 @@ class ChallengesScreen extends StatelessWidget {
             child: IconButton(
               icon: const Icon(
                 LucideIcons.plus,
-                color: Colors.white,
                 size: 20,
               ),
               onPressed: () {},
@@ -66,22 +61,22 @@ class ChallengesScreen extends StatelessWidget {
         child: Column(
           children: [
             // Header Section
-            _buildHeaderSection(),
+            _buildHeaderSection(context),
             const SizedBox(height: 20),
             
             // Active Challenges
-            _buildActiveChallenges(),
+            _buildActiveChallenges(context),
             const SizedBox(height: 20),
             
             // Available Challenges
-            _buildAvailableChallenges(),
+            _buildAvailableChallenges(context),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeaderSection() {
+  Widget _buildHeaderSection(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -90,12 +85,12 @@ class ChallengesScreen extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.1),
-            Colors.white.withOpacity(0.05),
+            Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            Theme.of(context).colorScheme.primary.withOpacity(0.05),
           ],
         ),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Theme.of(context).dividerColor,
           width: 1,
         ),
       ),
@@ -110,8 +105,8 @@ class ChallengesScreen extends StatelessWidget {
                 height: 80,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(40),
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF7C3AED), Color(0xFFF97316)],
+                  gradient: LinearGradient(
+                    colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.secondary],
                   ),
                 ),
                 child: const Icon(
@@ -126,7 +121,7 @@ class ChallengesScreen extends StatelessWidget {
                 style: GoogleFonts.inter(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 8),
@@ -135,7 +130,7 @@ class ChallengesScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: GoogleFonts.inter(
                   fontSize: 16,
-                  color: Colors.white.withOpacity(0.7),
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                 ),
               ),
             ],
@@ -145,7 +140,7 @@ class ChallengesScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildActiveChallenges() {
+  Widget _buildActiveChallenges(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -154,12 +149,12 @@ class ChallengesScreen extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.1),
-            Colors.white.withOpacity(0.05),
+            Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            Theme.of(context).colorScheme.primary.withOpacity(0.05),
           ],
         ),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Theme.of(context).dividerColor,
           width: 1,
         ),
       ),
@@ -175,13 +170,14 @@ class ChallengesScreen extends StatelessWidget {
                 style: GoogleFonts.inter(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
           _buildChallengeCard(
+            context,
             title: 'Daily Focus Sprint',
             description: 'Complete 3 focused work sessions today',
             participants: 127,
@@ -195,7 +191,7 @@ class ChallengesScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAvailableChallenges() {
+  Widget _buildAvailableChallenges(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -204,12 +200,12 @@ class ChallengesScreen extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.1),
-            Colors.white.withOpacity(0.05),
+            Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            Theme.of(context).colorScheme.primary.withOpacity(0.05),
           ],
         ),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Theme.of(context).dividerColor,
           width: 1,
         ),
       ),
@@ -218,14 +214,14 @@ class ChallengesScreen extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(LucideIcons.target, color: Colors.white, size: 20),
+              Icon(LucideIcons.target, color: Theme.of(context).colorScheme.onSurface, size: 20),
               const SizedBox(width: 8),
               Text(
                 'Available Challenges',
                 style: GoogleFonts.inter(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ],
@@ -235,6 +231,7 @@ class ChallengesScreen extends StatelessWidget {
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: _buildChallengeCard(
+                context,
                 title: 'Focus Challenge ${index + 1}',
                 description: '${(index + 1) * 37} participants • Starts in ${(index + 1) * 2}h',
                 participants: (index + 1) * 37,
@@ -250,7 +247,8 @@ class ChallengesScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildChallengeCard({
+  Widget _buildChallengeCard(
+    BuildContext context, {
     required String title,
     required String description,
     required int participants,
@@ -263,9 +261,9 @@ class ChallengesScreen extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        color: Colors.white.withOpacity(0.05),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Theme.of(context).dividerColor,
           width: 1,
         ),
       ),
@@ -297,14 +295,14 @@ class ChallengesScreen extends StatelessWidget {
                       style: GoogleFonts.inter(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     Text(
                       description,
                       style: GoogleFonts.inter(
                         fontSize: 14,
-                        color: Colors.white.withOpacity(0.7),
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                       ),
                     ),
                   ],
@@ -345,7 +343,7 @@ class ChallengesScreen extends StatelessWidget {
                       'Progress',
                       style: GoogleFonts.inter(
                         fontSize: 12,
-                        color: Colors.white.withOpacity(0.7),
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                       ),
                     ),
                     Text(
@@ -363,7 +361,7 @@ class ChallengesScreen extends StatelessWidget {
                   height: 4,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(2),
-                    color: Colors.white.withOpacity(0.1),
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   ),
                   child: FractionallySizedBox(
                     alignment: Alignment.centerLeft,
@@ -384,7 +382,7 @@ class ChallengesScreen extends StatelessWidget {
             children: [
               Icon(
                 LucideIcons.users,
-                color: Colors.white.withOpacity(0.7),
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                 size: 16,
               ),
               const SizedBox(width: 4),
@@ -393,7 +391,7 @@ class ChallengesScreen extends StatelessWidget {
                   '$participants participants',
                   style: GoogleFonts.inter(
                     fontSize: 12,
-                    color: Colors.white.withOpacity(0.7),
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -401,7 +399,7 @@ class ChallengesScreen extends StatelessWidget {
               const SizedBox(width: 8),
               Icon(
                 LucideIcons.clock,
-                color: Colors.white.withOpacity(0.7),
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                 size: 16,
               ),
               const SizedBox(width: 4),
@@ -410,7 +408,7 @@ class ChallengesScreen extends StatelessWidget {
                   timeLeft,
                   style: GoogleFonts.inter(
                     fontSize: 12,
-                    color: Colors.white.withOpacity(0.7),
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),

@@ -75,14 +75,11 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1B1B1B),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1B1B1B),
         elevation: 0,
         title: Text(
           'Sleep Tracker',
           style: GoogleFonts.inter(
-            color: Colors.white,
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
@@ -90,7 +87,6 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
         leading: IconButton(
           icon: const Icon(
             LucideIcons.menu,
-            color: Colors.white,
             size: 24,
           ),
           onPressed: () {
@@ -173,8 +169,8 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                 style: GoogleFonts.inter(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
+color: Theme.of(context).colorScheme.onSurface,
+              ),
               ),
               const SizedBox(height: 8),
               Text(
@@ -182,7 +178,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                 textAlign: TextAlign.center,
                 style: GoogleFonts.inter(
                   fontSize: 14,
-                  color: Colors.white.withOpacity(0.7),
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                 ),
               ),
               const SizedBox(height: 20),
@@ -197,8 +193,8 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                     style: GoogleFonts.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
+color: Theme.of(context).colorScheme.onSurface,
+              ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.purple,
@@ -251,8 +247,8 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
             style: GoogleFonts.inter(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+color: Theme.of(context).colorScheme.onSurface,
+              ),
           ),
           const SizedBox(height: 8),
           Text(
@@ -260,8 +256,8 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
             style: GoogleFonts.inter(
               fontSize: 32,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+color: Theme.of(context).colorScheme.onSurface,
+              ),
           ),
           const SizedBox(height: 20),
           SizedBox(
@@ -275,8 +271,8 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                 style: GoogleFonts.inter(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
+color: Theme.of(context).colorScheme.onSurface,
+              ),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.green,
@@ -296,8 +292,8 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: const Color(0xFF2A2A2A),
-        border: Border.all(color: const Color(0xFF3A3A3A)),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Row(
         children: [
@@ -321,19 +317,19 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
-          color: isSelected ? AppColors.purple : const Color(0xFF3A3A3A),
+          color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outline,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 16, color: isSelected ? Colors.white : Colors.grey),
+            Icon(icon, size: 16, color: isSelected ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurface.withOpacity(0.7)),
             const SizedBox(width: 8),
             Text(
               label,
               style: GoogleFonts.inter(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.white : Colors.grey,
+                color: isSelected ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
               ),
             ),
           ],
@@ -385,12 +381,12 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.1),
-            Colors.white.withOpacity(0.05),
+            Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            Theme.of(context).colorScheme.primary.withOpacity(0.05),
           ],
         ),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Theme.of(context).dividerColor,
           width: 1,
         ),
       ),
@@ -411,14 +407,14 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
             style: GoogleFonts.inter(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+color: Theme.of(context).colorScheme.onSurface,
+              ),
           ),
           Text(
             title,
             style: GoogleFonts.inter(
               fontSize: 14,
-              color: Colors.white.withOpacity(0.7),
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
             ),
           ),
         ],
@@ -439,13 +435,13 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              color: const Color(0xFF2A2A2A),
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
             ),
             child: Center(
               child: Text(
                 'No sleep data available',
                 style: GoogleFonts.inter(
-                  color: Colors.white.withOpacity(0.7),
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                 ),
               ),
             ),
@@ -460,12 +456,12 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Colors.white.withOpacity(0.1),
-                Colors.white.withOpacity(0.05),
+                Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                Theme.of(context).colorScheme.primary.withOpacity(0.05),
               ],
             ),
             border: Border.all(
-              color: Colors.white.withOpacity(0.2),
+              color: Theme.of(context).dividerColor,
               width: 1,
             ),
           ),
@@ -474,15 +470,15 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
             children: [
               Row(
                 children: [
-                  const Icon(LucideIcons.barChart3, color: Colors.white, size: 20),
+                  Icon(LucideIcons.barChart3, color: Theme.of(context).colorScheme.onSurface, size: 20),
                   const SizedBox(width: 8),
                   Text(
                     'Sleep Duration Trend',
                     style: GoogleFonts.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
+color: Theme.of(context).colorScheme.onSurface,
+              ),
                   ),
                 ],
               ),
@@ -497,7 +493,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                       horizontalInterval: 1,
                       getDrawingHorizontalLine: (value) {
                         return FlLine(
-                          color: Colors.white.withOpacity(0.1),
+                          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                           strokeWidth: 1,
                         );
                       },
@@ -515,7 +511,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                             return Text(
                               '${date.day}/${date.month}',
                               style: GoogleFonts.inter(
-                                color: Colors.white.withOpacity(0.7),
+                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                                 fontSize: 10,
                               ),
                             );
@@ -529,7 +525,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                             return Text(
                               '${value.toInt()}h',
                               style: GoogleFonts.inter(
-                                color: Colors.white.withOpacity(0.7),
+                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                                 fontSize: 10,
                               ),
                             );
@@ -586,12 +582,12 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Colors.white.withOpacity(0.1),
-                Colors.white.withOpacity(0.05),
+                Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                Theme.of(context).colorScheme.primary.withOpacity(0.05),
               ],
             ),
             border: Border.all(
-              color: Colors.white.withOpacity(0.2),
+              color: Theme.of(context).dividerColor,
               width: 1,
             ),
           ),
@@ -600,15 +596,15 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
             children: [
               Row(
                 children: [
-                  const Icon(LucideIcons.history, color: Colors.white, size: 20),
+                  Icon(LucideIcons.history, color: Theme.of(context).colorScheme.onSurface, size: 20),
                   const SizedBox(width: 8),
                   Text(
                     'Recent Sessions',
                     style: GoogleFonts.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
+color: Theme.of(context).colorScheme.onSurface,
+              ),
                   ),
                 ],
               ),
@@ -632,9 +628,9 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        color: Colors.white.withOpacity(0.05),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Theme.of(context).dividerColor,
           width: 1,
         ),
       ),
@@ -663,8 +659,8 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
+color: Theme.of(context).colorScheme.onSurface,
+              ),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -673,7 +669,7 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> {
                       : 'Incomplete',
                   style: GoogleFonts.inter(
                     fontSize: 12,
-                    color: Colors.white.withOpacity(0.7),
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                   ),
                 ),
               ],
@@ -736,13 +732,13 @@ class _SleepEndDialogState extends State<_SleepEndDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      backgroundColor: const Color(0xFF2A2A2A),
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
       title: Text(
         'End Sleep Session',
         style: GoogleFonts.inter(
           fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
+color: Theme.of(context).colorScheme.onSurface,
+              ),
       ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -750,13 +746,13 @@ class _SleepEndDialogState extends State<_SleepEndDialog> {
         children: [
           Text(
             'How was your sleep?',
-            style: GoogleFonts.inter(color: Colors.white),
+            style: GoogleFonts.inter(color: Theme.of(context).colorScheme.onSurface),
           ),
           const SizedBox(height: 16),
           ...SleepQuality.values.map((quality) => RadioListTile<SleepQuality>(
             title: Text(
               quality.name.toUpperCase(),
-              style: GoogleFonts.inter(color: Colors.white),
+              style: GoogleFonts.inter(color: Theme.of(context).colorScheme.onSurface),
             ),
             value: quality,
             groupValue: _selectedQuality,
@@ -768,12 +764,12 @@ class _SleepEndDialogState extends State<_SleepEndDialog> {
             controller: _notesController,
             decoration: InputDecoration(
               labelText: 'Notes (optional)',
-              labelStyle: GoogleFonts.inter(color: Colors.white70),
+              labelStyle: GoogleFonts.inter(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7)),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-            style: GoogleFonts.inter(color: Colors.white),
+            style: GoogleFonts.inter(color: Theme.of(context).colorScheme.onSurface),
             maxLines: 2,
           ),
         ],
@@ -799,7 +795,7 @@ class _SleepEndDialogState extends State<_SleepEndDialog> {
           ),
           child: Text(
             'End Session',
-            style: GoogleFonts.inter(color: Colors.white),
+            style: GoogleFonts.inter(color: Theme.of(context).colorScheme.onSurface),
           ),
         ),
       ],

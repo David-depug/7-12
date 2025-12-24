@@ -10,14 +10,11 @@ class CommunityScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1B1B1B),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1B1B1B),
         elevation: 0,
         title: Text(
           'Community',
           style: GoogleFonts.inter(
-            color: Colors.white,
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
@@ -25,7 +22,6 @@ class CommunityScreen extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(
             LucideIcons.menu,
-            color: Colors.white,
             size: 24,
           ),
           onPressed: () {
@@ -52,7 +48,6 @@ class CommunityScreen extends StatelessWidget {
             child: IconButton(
               icon: const Icon(
                 LucideIcons.search,
-                color: Colors.white,
                 size: 20,
               ),
               onPressed: () {},
@@ -66,22 +61,22 @@ class CommunityScreen extends StatelessWidget {
         child: Column(
           children: [
             // Leaderboard Header
-            _buildLeaderboardHeader(),
+            _buildLeaderboardHeader(context),
             const SizedBox(height: 20),
             
             // Top 3 Podium
-            _buildPodium(),
+            _buildPodium(context),
             const SizedBox(height: 20),
             
             // Leaderboard List
-            _buildLeaderboardList(),
+            _buildLeaderboardList(context),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildLeaderboardHeader() {
+  Widget _buildLeaderboardHeader(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -90,12 +85,12 @@ class CommunityScreen extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.1),
-            Colors.white.withOpacity(0.05),
+            Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            Theme.of(context).colorScheme.primary.withOpacity(0.05),
           ],
         ),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Theme.of(context).dividerColor,
           width: 1,
         ),
       ),
@@ -110,8 +105,8 @@ class CommunityScreen extends StatelessWidget {
                 height: 80,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(40),
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF7C3AED), Color(0xFFF97316)],
+                  gradient: LinearGradient(
+                    colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.secondary],
                   ),
                 ),
                 child: const Icon(
@@ -126,7 +121,7 @@ class CommunityScreen extends StatelessWidget {
                 style: GoogleFonts.inter(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 8),
@@ -135,7 +130,7 @@ class CommunityScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: GoogleFonts.inter(
                   fontSize: 16,
-                  color: Colors.white.withOpacity(0.7),
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                 ),
               ),
             ],
@@ -145,7 +140,7 @@ class CommunityScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPodium() {
+  Widget _buildPodium(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -154,12 +149,12 @@ class CommunityScreen extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.1),
-            Colors.white.withOpacity(0.05),
+            Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            Theme.of(context).colorScheme.primary.withOpacity(0.05),
           ],
         ),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Theme.of(context).dividerColor,
           width: 1,
         ),
       ),
@@ -167,14 +162,14 @@ class CommunityScreen extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(LucideIcons.crown, color: Colors.white, size: 20),
+              Icon(LucideIcons.crown, color: Theme.of(context).colorScheme.onSurface, size: 20),
               const SizedBox(width: 8),
               Text(
                 'Top Performers',
                 style: GoogleFonts.inter(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ],
@@ -185,6 +180,7 @@ class CommunityScreen extends StatelessWidget {
             children: [
               // 2nd Place
               _buildPodiumItem(
+                context,
                 rank: 2,
                 name: 'Sarah',
                 xp: '2,450',
@@ -193,6 +189,7 @@ class CommunityScreen extends StatelessWidget {
               ),
               // 1st Place
               _buildPodiumItem(
+                context,
                 rank: 1,
                 name: 'Alex',
                 xp: '3,200',
@@ -201,6 +198,7 @@ class CommunityScreen extends StatelessWidget {
               ),
               // 3rd Place
               _buildPodiumItem(
+                context,
                 rank: 3,
                 name: 'Mike',
                 xp: '1,890',
@@ -214,7 +212,8 @@ class CommunityScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPodiumItem({
+  Widget _buildPodiumItem(
+    BuildContext context, {
     required int rank,
     required String name,
     required String xp,
@@ -270,21 +269,21 @@ class CommunityScreen extends StatelessWidget {
           style: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         Text(
           '$xp XP',
           style: GoogleFonts.inter(
             fontSize: 12,
-            color: Colors.white.withOpacity(0.7),
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildLeaderboardList() {
+  Widget _buildLeaderboardList(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -293,12 +292,12 @@ class CommunityScreen extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.1),
-            Colors.white.withOpacity(0.05),
+            Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            Theme.of(context).colorScheme.primary.withOpacity(0.05),
           ],
         ),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Theme.of(context).dividerColor,
           width: 1,
         ),
       ),
@@ -307,14 +306,14 @@ class CommunityScreen extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(LucideIcons.list, color: Colors.white, size: 20),
+              Icon(LucideIcons.list, color: Theme.of(context).colorScheme.onSurface, size: 20),
               const SizedBox(width: 8),
               Text(
                 'Full Leaderboard',
                 style: GoogleFonts.inter(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ],
@@ -323,6 +322,7 @@ class CommunityScreen extends StatelessWidget {
           ...List.generate(10, (index) {
             final rank = index + 4; // Start from 4th place
             return _buildLeaderboardItem(
+              context,
               rank: rank,
               name: 'User $rank',
               xp: '${(1000 - (rank * 50)).toString()}',
@@ -334,7 +334,8 @@ class CommunityScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildLeaderboardItem({
+  Widget _buildLeaderboardItem(
+    BuildContext context, {
     required int rank,
     required String name,
     required String xp,
@@ -346,12 +347,12 @@ class CommunityScreen extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
         color: isCurrentUser 
-            ? const Color(0xFF7C3AED).withOpacity(0.2)
-            : Colors.white.withOpacity(0.05),
+            ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
+            : Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
         border: Border.all(
           color: isCurrentUser 
-              ? const Color(0xFF7C3AED).withOpacity(0.3)
-              : Colors.white.withOpacity(0.1),
+              ? Theme.of(context).colorScheme.primary.withOpacity(0.3)
+              : Theme.of(context).dividerColor,
           width: 1,
         ),
       ),
@@ -413,14 +414,14 @@ class CommunityScreen extends StatelessWidget {
                   style: GoogleFonts.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 Text(
                   '$xp XP',
                   style: GoogleFonts.inter(
                     fontSize: 14,
-                    color: Colors.white.withOpacity(0.7),
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                   ),
                 ),
               ],
