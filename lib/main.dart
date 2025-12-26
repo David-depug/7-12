@@ -3,8 +3,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'firebase_options.dart';
 import 'constants/app_colors.dart';
+import 'config.dart';
 import 'models/mission_model.dart';
 import 'models/user_model.dart';
 import 'models/auth_model.dart';
@@ -12,6 +14,7 @@ import 'models/parental_control_model.dart';
 import 'models/screen_time_model.dart';
 import 'models/sleep_model.dart';
 import 'models/step_counter_model.dart';
+import 'models/journal_model.dart';
 import 'screens/challenges_screen.dart';
 import 'screens/community_screen.dart';
 import 'screens/home_screen.dart';
@@ -22,19 +25,38 @@ import 'screens/analytics_screen.dart';
 import 'screens/mini_games_screen.dart';
 import 'screens/sleep_tracker_screen.dart';
 import 'screens/step_tracker_screen.dart';
+import 'screens/journal_screen.dart';
 import 'services/screen_time_service.dart';
+import 'services/journal_api_service.dart';
+import 'services/journal_local_service.dart';
+import 'services/journal_service.dart';
+import 'services/notification_service.dart';
 import 'package:flutter/services.dart'; // للـ MethodChannel
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Hive.initFlutter();
+
+  final journalLocalService = JournalLocalService();
+  await journalLocalService.init();
+  final journalService = JournalService(
+    localService: journalLocalService,
+    apiService: JournalApiService(),
+  );
+
+  // Initialize notifications and schedule the daily 10 PM journal reminder.
+  await NotificationService.initialize();
+  await NotificationService.scheduleDailyJournalReminder();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const MindQuestApp());
+  runApp(MindQuestApp(journalService: journalService));
 }
 
 class MindQuestApp extends StatelessWidget {
-  const MindQuestApp({super.key});
+  const MindQuestApp({super.key, required this.journalService});
+
+  final JournalService journalService;
 
   @override
   Widget build(BuildContext context) {
@@ -67,6 +89,9 @@ class MindQuestApp extends StatelessWidget {
           ScreenTimeService.initialize(screenTimeModel);
           return screenTimeModel;
         }),
+        ChangeNotifierProvider(
+          create: (_) => JournalModel(journalService)..loadEntries(),
+        ),
       ],
       child: MaterialApp(
         title: 'MindQuest',
@@ -120,6 +145,7 @@ class _RootNavState extends State<RootNav> {
     const StepTrackerScreen(),
     const ParentalControlScreen(),
     const ProfileScreen(),
+    const JournalScreen(),
   ];
 
   final List<_NavItem> _navItems = const [
@@ -132,6 +158,7 @@ class _RootNavState extends State<RootNav> {
     _NavItem(icon: LucideIcons.footprints, label: 'Step Tracker', index: 6),
     _NavItem(icon: LucideIcons.shield, label: 'Parental', index: 7),
     _NavItem(icon: LucideIcons.user, label: 'Profile', index: 8),
+    _NavItem(icon: LucideIcons.bookOpen, label: 'Journaling', index: 9),
   ];
 
   void _navigateTo(int index) {

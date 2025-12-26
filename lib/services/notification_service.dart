@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
 
   static Future<void> initialize() async {
+    // Initialize timezone database (for scheduled notifications)
+    tz.initializeTimeZones();
+
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosSettings = DarwinInitializationSettings();
     const initSettings = InitializationSettings(
@@ -19,7 +24,7 @@ class NotificationService {
   }
 
   static Future<void> _createNotificationChannels() async {
-    // Create blocked apps notification channel
+    // Create notification channels
     const blockedAppsChannel = AndroidNotificationChannel(
       'blocked_apps',
       'Blocked Apps',
@@ -27,13 +32,121 @@ class NotificationService {
       importance: Importance.high,
     );
 
-    await _notifications
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(blockedAppsChannel);
+    const focusStartChannel = AndroidNotificationChannel(
+      'focus_channel',
+      'Focus Mode',
+      description: 'Notifications for focus mode start',
+      importance: Importance.high,
+    );
+
+    const focusCompleteChannel = AndroidNotificationChannel(
+      'focus_complete',
+      'Focus Complete',
+      description: 'Focus completion notifications',
+      importance: Importance.high,
+    );
+
+    const streakChannel = AndroidNotificationChannel(
+      'streak_channel',
+      'Focus Streaks',
+      description: 'Focus streak notifications',
+      importance: Importance.defaultImportance,
+    );
+
+    const dailyJournalChannel = AndroidNotificationChannel(
+      'daily_journal',
+      'Daily Journal Reminder',
+      description: 'Daily reminder to write your journal',
+      importance: Importance.high,
+    );
+
+    final androidPlugin = _notifications
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+
+    await androidPlugin?.createNotificationChannel(blockedAppsChannel);
+    await androidPlugin?.createNotificationChannel(focusStartChannel);
+    await androidPlugin?.createNotificationChannel(focusCompleteChannel);
+    await androidPlugin?.createNotificationChannel(streakChannel);
+    await androidPlugin?.createNotificationChannel(dailyJournalChannel);
   }
 
   static Future<void> _requestPermissions() async {
-    // Permissions are handled by the block_app package
+    // iOS permissions (Android controlled via system app settings)
+    final iosPlugin = _notifications
+        .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
+    await iosPlugin?.requestPermissions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+  }
+
+  /// Schedule a daily notification at 22:00 local time (production mode).
+  static Future<void> scheduleDailyJournalReminder() async {
+    // Cancel any existing notification with this ID to avoid duplicates
+    await _notifications.cancel(2000);
+    
+    final now = tz.TZDateTime.now(tz.local);
+    // Next 22:00 local
+    var scheduled =
+        tz.TZDateTime(tz.local, now.year, now.month, now.day, 22, 0);
+    if (scheduled.isBefore(now)) {
+      scheduled = scheduled.add(const Duration(days: 1));
+    }
+
+    const androidDetails = AndroidNotificationDetails(
+      'daily_journal',
+      'Daily Journal Reminder',
+      channelDescription: 'Daily reminder to write your MindQuest journal',
+      importance: Importance.high,
+      priority: Priority.high,
+      icon: '@mipmap/ic_launcher',
+      color: Color(0xFF6B46C1),
+    );
+
+    final notificationDetails = NotificationDetails(android: androidDetails);
+
+    // Daily schedule at 22:00 local time.
+    await _notifications.zonedSchedule(
+  2000, // id
+  '📝 Evening Reflection',
+  '🌿 Your journal is here whenever you\'re ready.',
+  scheduled, // MUST be tz.TZDateTime
+  notificationDetails,
+  androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+  matchDateTimeComponents: DateTimeComponents.time,
+  payload: 'evening_reflection',
+);
+    print('Scheduled daily journal reminder for $scheduled (local time: ${now.hour}:${now.minute.toString().padLeft(2, '0')})');
+  }
+
+  /// Debug helper: show a test notification after a short delay (no scheduling).
+  static Future<void> debugOneShotTestAfter(Duration delay) async {
+    await Future.delayed(delay);
+    await showTestNotification();
+  }
+
+  /// Helper for manual testing: show an immediate notification.
+  static Future<void> showTestNotification() async {
+    final androidDetails = AndroidNotificationDetails(
+      'focus_channel',
+      'Focus Mode',
+      channelDescription: 'Notifications for focus mode',
+      importance: Importance.high,
+      priority: Priority.high,
+      icon: '@mipmap/ic_launcher',
+      color: const Color(0xFF6B46C1),
+    );
+
+    final notificationDetails = NotificationDetails(android: androidDetails);
+
+    await _notifications.show(
+      9999,
+      'Test Notification',
+      'If you see this, notifications are working.',
+      notificationDetails,
+    );
   }
 
   static Future<void> showFocusStartNotification() async {

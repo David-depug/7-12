@@ -8,11 +8,19 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:mindquest/main.dart';
+import 'package:mindquest/services/journal_local_service.dart';
+import 'package:mindquest/services/journal_api_service.dart';
+import 'package:mindquest/services/journal_service.dart';
 
 void main() {
   testWidgets('App loads without crashing', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MindQuestApp());
+    // Minimal wiring for required journalService in tests.
+    final journalService = JournalService(
+      localService: JournalLocalService(),
+      apiService: JournalApiService(),
+    );
+
+    await tester.pumpWidget(MindQuestApp(journalService: journalService));
 
     // Verify that the app loads
     expect(find.text('MindQuest'), findsOneWidget);
