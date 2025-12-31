@@ -12,7 +12,20 @@
           "package_name": "com.example.mindquest"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "228672076341-jhjmcfbi591hfkvi5eqt5dt2n5vofcgr.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.mindquest",
+            "certificate_hash": "699de118ca02cea8b56084967f717adffce4de84"
+          }
+        },
+        {
+          "client_id": "228672076341-ej3sonbu9aic6nk5255t1htvca66hffc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCABrAlPpeRojPIFQlTsVYIc2n8rSEoJZY"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "228672076341-ej3sonbu9aic6nk5255t1htvca66hffc.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "228672076341-aaeign8ncgqfefq8pri8a0donp6kc77g.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.mindquest"
+              }
+            }
+          ]
         }
       }
     }

@@ -22,6 +22,11 @@
     <!-- for Android 13+ notifications -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- 🔹 إضافات لـ Firebase OTP Authentication -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.RECEIVE_SMS"/>
+    <uses-permission android:name="android.permission.READ_SMS"/>
+
     <application
         android:label="@string/app_name"
         android:name="${applicationName}"
@@ -29,7 +34,9 @@
         android:allowBackup="false"
         android:debuggable="true"
         tools:replace="android:allowBackup">
-
+    
+        
+    
         <!-- Main Flutter Activity -->
         <activity
             android:name=".MainActivity"
@@ -44,10 +51,28 @@
                 android:name="io.flutter.embedding.android.NormalTheme"
                 android:resource="@style/NormalTheme" />
             <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+                
+            <!-- Deep Linking for Firebase Dynamic Links and Email Verification -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="mindquest.page.link" />
+            </intent-filter>
+                
+            <!-- Alternative deep link for custom domain if you have one -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="mindquest.com" />
             </intent-filter>
         </activity>
+    
+        
 
         <!-- Warning Activity used by AdminReceiver -->
         <activity
@@ -86,11 +111,6 @@
             android:name=".RestartReceiver"
             android:exported="true" />
 
-        <!--
-           ✅ التعديل تم هنا:
-           1. حذفنا android:permission من داخل الوسم (لأنه كان يمنع التشغيل).
-           2. أبقينا على foregroundServiceType.
-        -->
         <service
             android:name=".GuardService"
             android:enabled="true"

@@ -128,7 +128,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: LucideIcons.target,
                 child: Column(
                   children: [
-                    ...missions.map((m) => _buildMissionCard(m)).toList(),
+                    ...missions.map((m) => _buildMissionCard(m)),
                   ],
                 ),
               ),
@@ -450,7 +450,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onChanged: (value) {
               context.read<MissionsModel>().toggleMission(mission.id);
             },
-            activeColor: const Color(0xFF7C3AED),
+            activeThumbColor: const Color(0xFF7C3AED),
           ),
         ],
       ),

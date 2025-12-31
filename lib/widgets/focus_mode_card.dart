@@ -24,7 +24,9 @@ class FocusModeCard extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: isActive ? AppColors.primaryGradient : [Colors.grey[200]!, Colors.grey[300]!],
+          colors: isActive
+              ? AppColors.primaryGradient
+              : [Colors.grey[200]!, Colors.grey[300]!],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -49,18 +51,18 @@ class FocusModeCard extends StatelessWidget {
                   Text(
                     isActive ? 'Focus Mode Active' : 'Focus Zone',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: isActive ? Colors.white : Colors.black,
-                      fontWeight: FontWeight.bold,
-                    ),
+                          color: isActive ? Colors.white : Colors.black,
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    isActive 
-                        ? 'Stay focused! Apps are blocked.' 
+                    isActive
+                        ? 'Stay focused! Apps are blocked.'
                         : 'Block distractions, level up your focus.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: isActive ? Colors.white70 : Colors.grey,
-                    ),
+                          color: isActive ? Colors.white70 : Colors.grey,
+                        ),
                   ),
                 ],
               ),
@@ -76,15 +78,19 @@ class FocusModeCard extends StatelessWidget {
                     color: AppColors.green,
                     size: 24,
                   ),
-                ).animate().scale(
-                  begin: const Offset(1.0, 1.0),
-                  end: const Offset(1.1, 1.1),
-                  duration: 2000.ms,
-                ).then().scale(
-                  begin: const Offset(1.1, 1.1),
-                  end: const Offset(1.0, 1.0),
-                  duration: 2000.ms,
-                ),
+                )
+                    .animate()
+                    .scale(
+                      begin: const Offset(1.0, 1.0),
+                      end: const Offset(1.1, 1.1),
+                      duration: 2000.ms,
+                    )
+                    .then()
+                    .scale(
+                      begin: const Offset(1.1, 1.1),
+                      end: const Offset(1.0, 1.0),
+                      duration: 2000.ms,
+                    ),
             ],
           ),
           const SizedBox(height: 24),
@@ -101,7 +107,7 @@ class FocusModeCard extends StatelessWidget {
   Widget _buildActiveSessionInfo(FocusSession session) {
     final remaining = session.remainingTime;
     final progress = 1.0 - (remaining.inSeconds / session.duration.inSeconds);
-    
+
     return Builder(
       builder: (context) => Column(
         children: [
@@ -111,15 +117,15 @@ class FocusModeCard extends StatelessWidget {
               Text(
                 'Time Remaining',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.white70,
-                ),
+                      color: Colors.white70,
+                    ),
               ),
               Text(
                 _formatDuration(remaining),
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
             ],
           ),
@@ -136,14 +142,14 @@ class FocusModeCard extends StatelessWidget {
               Text(
                 '${session.blockedApps.length} apps blocked',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.white70,
-                ),
+                      color: Colors.white70,
+                    ),
               ),
               Text(
                 '${(progress * 100).toInt()}% complete',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.white70,
-                ),
+                      color: Colors.white70,
+                    ),
               ),
             ],
           ),
@@ -176,7 +182,7 @@ class FocusModeCard extends StatelessWidget {
     final hours = duration.inHours;
     final minutes = duration.inMinutes.remainder(60);
     final seconds = duration.inSeconds.remainder(60);
-    
+
     if (hours > 0) {
       return '${twoDigits(hours)}:${twoDigits(minutes)}:${twoDigits(seconds)}';
     } else {

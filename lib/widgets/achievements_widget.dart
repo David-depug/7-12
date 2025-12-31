@@ -7,10 +7,10 @@ class AchievementsWidget extends StatelessWidget {
   final VoidCallback? onAchievementTap;
 
   const AchievementsWidget({
-    Key? key,
+    super.key,
     required this.achievements,
     this.onAchievementTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

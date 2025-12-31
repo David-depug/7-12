@@ -67,12 +67,12 @@ class StepProgressCard extends StatelessWidget {
               Container(
                 width: 80,
                 height: 80,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
                     colors: [
                       AppColors.purple,
-                      const Color(0xFFF97316),
+                      Color(0xFFF97316),
                     ],
                   ),
                 ),
@@ -112,7 +112,7 @@ class StepProgressCard extends StatelessWidget {
               value: progress.clamp(0.0, 1.0),
               minHeight: 12,
               backgroundColor: Colors.white.withOpacity(0.1),
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.purple),
+              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.purple),
             ),
           ),
           if (todayData != null) ...[

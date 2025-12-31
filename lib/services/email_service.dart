@@ -11,36 +11,49 @@ class EmailService {
   /// إرسال OTP للمستخدم عبر البريد
   static Future<void> sendOtp(String toEmail, String otp) async {
     try {
-      // 🔹 أولاً: محاولة إرسال عبر SMTP إذا متاح
-      if (SMTP_USERNAME.isNotEmpty && SMTP_PASSWORD.isNotEmpty) {
+      // Always try to send via SMTP if configured
+      if (SMTP_USERNAME.isNotEmpty &&
+          SMTP_PASSWORD.isNotEmpty &&
+          FROM_EMAIL.isNotEmpty) {
         final ok = await _sendEmailRaw(
           toEmail,
           'MindQuest OTP Verification',
-          'Your OTP code is: $otp\n\nDo not share it with anyone.',
+          'Your OTP code is: $otp\n\nDo not share it with anyone.\nThis code expires in 5 minutes.',
         );
 
-        if (ok) return;
+        if (ok) {
+          print('OTP sent successfully to $toEmail');
+          return;
+        } else {
+          print('Failed to send OTP via SMTP for $toEmail');
+          print('Please check your email configuration in config.dart');
+        }
+      } else {
+        print(
+            'SMTP not configured. Please set up your email settings in config.dart');
+        print('Email: $toEmail, OTP: [HIDDEN FOR SECURITY]');
       }
 
-      // 🔹 fallback للتطوير: طباعة OTP في الكونسل
-      if (kDebugMode) {
-        print('*** OTP fallback (email failed or SMTP not configured) for $toEmail => $otp ***');
-      }
+      // For production, consider implementing alternative delivery methods
+      // like Firebase Cloud Messaging or SMS as fallbacks
     } catch (e) {
-      if (kDebugMode) print('Failed to send OTP: $e');
+      print('Failed to send OTP: $e');
+      // Log error for debugging purposes
     }
   }
 
   /// إرسال طلب إعادة تعيين كلمة المرور
   static Future<void> sendPasswordResetRequest(String toEmail) async {
     try {
-      if (SMTP_USERNAME.isNotEmpty && SMTP_PASSWORD.isNotEmpty) {
+      if (SMTP_USERNAME.isNotEmpty &&
+          SMTP_PASSWORD.isNotEmpty &&
+          FROM_EMAIL.isNotEmpty) {
         final ok = await _sendEmailRaw(
           toEmail,
           'MindQuest Password Reset',
           'We received a request to reset your password.\n'
-          'If this was you, please follow the instructions in the app.\n'
-          'If not, ignore this message.',
+              'If this was you, please follow the instructions in the app.\n'
+              'If not, ignore this message.',
         );
         if (ok) return;
       }
@@ -55,9 +68,12 @@ class EmailService {
   }
 
   /// دالة مساعدة لإرسال البريد عبر SMTP
-  static Future<bool> _sendEmailRaw(String toEmail, String subject, String body) async {
-    if (SMTP_USERNAME.isEmpty || SMTP_PASSWORD.isEmpty) {
-      if (kDebugMode) print('*** SMTP not configured. Email not sent to $toEmail ***');
+  static Future<bool> _sendEmailRaw(
+      String toEmail, String subject, String body) async {
+    if (SMTP_USERNAME.isEmpty || SMTP_PASSWORD.isEmpty || FROM_EMAIL.isEmpty) {
+      if (kDebugMode) {
+        print('*** SMTP not configured. Email not sent to $toEmail ***');
+      }
       return false;
     }
 
@@ -71,7 +87,7 @@ class EmailService {
     );
 
     final message = Message()
-      ..from = Address(FROM_EMAIL, FROM_NAME)
+      ..from = const Address(FROM_EMAIL, FROM_NAME)
       ..recipients.add(toEmail)
       ..subject = subject
       ..text = body;

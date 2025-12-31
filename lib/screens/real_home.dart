@@ -86,10 +86,10 @@ class RealHome extends StatelessWidget {
           ),
         ),
       ),
-      body: Center(
+      body: const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
+          children: [
             Icon(Icons.home, color: Colors.blue, size: 80),
             SizedBox(height: 20),
             Text(

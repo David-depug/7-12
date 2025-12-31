@@ -228,10 +228,10 @@ class _XoxoGameState extends State<XoxoGame> {
                       decoration: BoxDecoration(
                         border: Border(
                           right: index % 3 != 2
-                              ? BorderSide(color: AppColors.purple, width: 1)
+                              ? const BorderSide(color: AppColors.purple, width: 1)
                               : BorderSide.none,
                           bottom: index < 6
-                              ? BorderSide(color: AppColors.purple, width: 1)
+                              ? const BorderSide(color: AppColors.purple, width: 1)
                               : BorderSide.none,
                         ),
                       ),

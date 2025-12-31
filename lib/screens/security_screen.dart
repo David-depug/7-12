@@ -34,8 +34,8 @@ class _SecurityScreenState extends State<SecurityScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: const [
+            const Row(
+              children: [
                 Icon(Icons.lock, color: Colors.green),
                 SizedBox(width: 8),
                 Text(
@@ -50,24 +50,24 @@ class _SecurityScreenState extends State<SecurityScreen> {
               style: const TextStyle(color: Colors.white70),
             ),
             const SizedBox(height: 16),
-            SwitchListTile(
-              title: const Text(
+            const SwitchListTile(
+              title: Text(
                 'Enable 2FA (email OTP)',
                 style: TextStyle(color: Colors.white),
               ),
-              subtitle: const Text(
+              subtitle: Text(
                 'Coming soon',
                 style: TextStyle(color: Colors.white54, fontSize: 12),
               ),
               value: false,
               onChanged: null,
             ),
-            SwitchListTile(
-              title: const Text(
+            const SwitchListTile(
+              title: Text(
                 'Enable biometric login',
                 style: TextStyle(color: Colors.white),
               ),
-              subtitle: const Text(
+              subtitle: Text(
                 'Coming soon',
                 style: TextStyle(color: Colors.white54, fontSize: 12),
               ),

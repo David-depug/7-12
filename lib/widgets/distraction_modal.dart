@@ -27,7 +27,7 @@ class DistractionModal extends StatelessWidget {
         children: [
           Text('Distraction Disruptor', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
-          Text('Take 30 seconds for a reset: breathe, stretch, and refocus.'),
+          const Text('Take 30 seconds for a reset: breathe, stretch, and refocus.'),
           const SizedBox(height: 16),
           Row(
             children: [

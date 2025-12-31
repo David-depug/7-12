@@ -355,10 +355,10 @@ class ProfileScreen extends StatelessWidget {
                   width: 1,
                 ),
               ),
-              child: Center(
+              child: const Center(
                 child: Text(
                   '🏅',
-                  style: const TextStyle(fontSize: 24),
+                  style: TextStyle(fontSize: 24),
                 ),
               ),
             ),

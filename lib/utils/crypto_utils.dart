@@ -36,13 +36,15 @@ String pbkdf2(String password, String saltBase64,
 
   for (var i = 1; i <= blocks; i++) {
     // U1 = HMAC(P, S || INT(i))
-    final blockData = <int>[]..addAll(salt)..addAll(_u32ToBytes(i));
+    final blockData = <int>[...salt, ..._u32ToBytes(i)];
     var u = _hmacSha256(passBytes, blockData);
     final t = List<int>.from(u);
 
     for (var j = 1; j < iterations; j++) {
       u = _hmacSha256(passBytes, u);
-      for (var k = 0; k < t.length; k++) t[k] ^= u[k];
+      for (var k = 0; k < t.length; k++) {
+        t[k] ^= u[k];
+      }
     }
     out.addAll(t);
   }
@@ -54,7 +56,9 @@ String pbkdf2(String password, String saltBase64,
 bool constantTimeEquals(List<int> a, List<int> b) {
   if (a.length != b.length) return false;
   var diff = 0;
-  for (var i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+  for (var i = 0; i < a.length; i++) {
+    diff |= a[i] ^ b[i];
+  }
   return diff == 0;
 }
 
@@ -69,7 +73,9 @@ bool verifyPassword(String password, String saltBase64, String storedHashBase64,
 String generateOtp([int length = 6]) {
   final rand = Random.secure();
   String s = '';
-  for (var i = 0; i < length; i++) s += rand.nextInt(10).toString();
+  for (var i = 0; i < length; i++) {
+    s += rand.nextInt(10).toString();
+  }
   return s;
 }
 

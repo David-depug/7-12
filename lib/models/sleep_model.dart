@@ -31,7 +31,7 @@ class SleepSession {
 }
 
 class SleepModel extends ChangeNotifier {
-  List<SleepSession> _sleepSessions = [];
+  final List<SleepSession> _sleepSessions = [];
   SleepSession? _currentSession;
   late ActivityDetectionService _activityDetectionService;
   

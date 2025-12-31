@@ -33,7 +33,7 @@ class StepPermissionWidget extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Icon(
+          const Icon(
             LucideIcons.alertCircle,
             color: Colors.orange,
             size: 48,

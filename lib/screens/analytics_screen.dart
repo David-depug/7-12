@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:flutter/services.dart';
 import '../services/screen_time_service.dart';
 import '../main.dart';
 
@@ -955,7 +954,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     ),
                   ),
                   Text(
-                    '${percentage}%',
+                    '$percentage%',
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -1140,9 +1139,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final int remainingMinutes = minutes % 60;
 
     if (hours > 0) {
-      return '${hours} hr ${remainingMinutes} mins';
+      return '$hours hr $remainingMinutes mins';
     } else if (minutes > 0) {
-      return '${minutes} mins';
+      return '$minutes mins';
     } else {
       return '$totalSeconds secs';
     }

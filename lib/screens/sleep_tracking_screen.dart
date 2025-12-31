@@ -87,8 +87,8 @@ class _SleepTrackingScreenState extends State<SleepTrackingScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: sleepModel.isSleeping
-              ? [Color(0xFF667eea), Color(0xFF764ba2)]
-              : [Color(0xFFf093fb), Color(0xFFf5576c)],
+              ? [const Color(0xFF667eea), const Color(0xFF764ba2)]
+              : [const Color(0xFFf093fb), const Color(0xFFf5576c)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -266,11 +266,11 @@ class _SleepTrackingScreenState extends State<SleepTrackingScreen> {
           color: Colors.grey.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Column(
+        child: const Column(
           children: [
             Icon(LucideIcons.moon, size: 48, color: Colors.grey),
-            const SizedBox(height: 12),
-            const Text(
+            SizedBox(height: 12),
+            Text(
               'No sleep sessions yet',
               style: TextStyle(color: Colors.grey, fontSize: 16),
             ),

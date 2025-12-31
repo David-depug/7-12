@@ -101,7 +101,7 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> with WidgetsBindi
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
+                  const Icon(
                     LucideIcons.alertCircle,
                     color: Colors.red,
                     size: 48,

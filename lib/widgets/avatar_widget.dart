@@ -8,12 +8,12 @@ class AvatarWidget extends StatelessWidget {
   final VoidCallback? onTap;
 
   const AvatarWidget({
-    Key? key,
+    super.key,
     required this.level,
     required this.xp,
     this.isActive = false,
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -23,14 +23,18 @@ class AvatarWidget extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: isActive ? AppColors.primaryGradient : [Colors.grey[200]!, Colors.grey[300]!],
+            colors: isActive
+                ? AppColors.primaryGradient
+                : [Colors.grey[200]!, Colors.grey[300]!],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: (isActive ? AppColors.purple : Colors.grey).withOpacity(0.3),
+              color: isActive
+                  ? AppColors.purple.withOpacity(0.3)
+                  : Colors.grey.withOpacity(0.3),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -98,12 +102,3 @@ class AvatarWidget extends StatelessWidget {
     );
   }
 }
-
-
-
-
-
-
-
-
-
