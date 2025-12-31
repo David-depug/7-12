@@ -25,7 +25,7 @@ class StepCounterModel extends ChangeNotifier {
   int _todaySteps = 0;
   int _goalSteps = 10000;
   List<DailyStepData> _stepHistory = [];
-  DateTime _lastSyncDate = DateTime.now();
+  final DateTime _lastSyncDate = DateTime.now();
   static const String _stepsKey = 'daily_steps';
   static const String _historyKey = 'step_history';
   static const String _goalKey = 'step_goal';
@@ -40,9 +40,9 @@ class StepCounterModel extends ChangeNotifier {
   
   int get weeklySteps {
     final now = DateTime.now();
-    final weekAgo = now.subtract(Duration(days: 7));
+    final weekAgo = now.subtract(const Duration(days: 7));
     return _stepHistory
-        .where((data) => data.date.isAfter(weekAgo) && data.date.isBefore(now.add(Duration(days: 1))))
+        .where((data) => data.date.isAfter(weekAgo) && data.date.isBefore(now.add(const Duration(days: 1))))
         .fold<int>(0, (sum, data) => sum + data.steps);
   }
   
@@ -50,7 +50,7 @@ class StepCounterModel extends ChangeNotifier {
     final now = DateTime.now();
     final monthAgo = DateTime(now.year, now.month - 1, now.day);
     return _stepHistory
-        .where((data) => data.date.isAfter(monthAgo) && data.date.isBefore(now.add(Duration(days: 1))))
+        .where((data) => data.date.isAfter(monthAgo) && data.date.isBefore(now.add(const Duration(days: 1))))
         .fold<int>(0, (sum, data) => sum + data.steps);
   }
   

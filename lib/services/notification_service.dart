@@ -37,17 +37,17 @@ class NotificationService {
   }
 
   static Future<void> showFocusStartNotification() async {
-    final androidDetails = AndroidNotificationDetails(
+    const androidDetails = AndroidNotificationDetails(
       'focus_channel',
       'Focus Mode',
       channelDescription: 'Notifications for focus mode',
       importance: Importance.high,
       priority: Priority.high,
       icon: '@mipmap/ic_launcher',
-      color: const Color(0xFF6B46C1),
+      color: Color(0xFF6B46C1),
     );
 
-    final notificationDetails = NotificationDetails(android: androidDetails);
+    const notificationDetails = NotificationDetails(android: androidDetails);
 
     await _notifications.show(
       1,
@@ -58,17 +58,17 @@ class NotificationService {
   }
 
   static Future<void> showFocusCompleteNotification(int xpEarned) async {
-    final androidDetails = AndroidNotificationDetails(
+    const androidDetails = AndroidNotificationDetails(
       'focus_complete',
       'Focus Complete',
       channelDescription: 'Focus completion notifications',
       importance: Importance.high,
       priority: Priority.high,
       icon: '@mipmap/ic_launcher',
-      color: const Color(0xFF45D9A8),
+      color: Color(0xFF45D9A8),
     );
 
-    final notificationDetails = NotificationDetails(android: androidDetails);
+    const notificationDetails = NotificationDetails(android: androidDetails);
 
     await _notifications.show(
       2,
@@ -79,17 +79,17 @@ class NotificationService {
   }
 
   static Future<void> showStreakNotification(int streak) async {
-    final androidDetails = AndroidNotificationDetails(
+    const androidDetails = AndroidNotificationDetails(
       'streak_channel',
       'Focus Streaks',
       channelDescription: 'Focus streak notifications',
       importance: Importance.defaultImportance,
       priority: Priority.defaultPriority,
       icon: '@mipmap/ic_launcher',
-      color: const Color(0xFF6B46C1),
+      color: Color(0xFF6B46C1),
     );
 
-    final notificationDetails = NotificationDetails(android: androidDetails);
+    const notificationDetails = NotificationDetails(android: androidDetails);
 
     await _notifications.show(
       3,
@@ -100,17 +100,17 @@ class NotificationService {
   }
 
   static Future<void> showBlockedAppNotification(String appName) async {
-    final androidDetails = AndroidNotificationDetails(
+    const androidDetails = AndroidNotificationDetails(
       'blocked_apps',
       'Blocked Apps',
       channelDescription: 'Notifications when blocked apps are accessed',
       importance: Importance.high,
       priority: Priority.high,
       icon: '@mipmap/ic_launcher',
-      color: const Color(0xFF6B46C1),
+      color: Color(0xFF6B46C1),
     );
 
-    final notificationDetails = NotificationDetails(android: androidDetails);
+    const notificationDetails = NotificationDetails(android: androidDetails);
 
     await _notifications.show(
       999,

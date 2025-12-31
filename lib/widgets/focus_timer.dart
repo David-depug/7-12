@@ -11,13 +11,13 @@ class FocusTimer extends StatefulWidget {
   final VoidCallback? onEnd;
 
   const FocusTimer({
-    Key? key,
+    super.key,
     this.session,
     this.onStart,
     this.onPause,
     this.onResume,
     this.onEnd,
-  }) : super(key: key);
+  });
 
   @override
   State<FocusTimer> createState() => _FocusTimerState();
@@ -91,7 +91,7 @@ class _FocusTimerState extends State<FocusTimer> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
+          const Icon(
             Icons.play_circle_fill,
             size: 64,
             color: Colors.white,

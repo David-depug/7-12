@@ -183,22 +183,22 @@ class _SudokuGameState extends State<SudokuGame> {
                               : Colors.transparent,
                           border: Border(
                             top: (row == 0 || row % 3 == 0)
-                                ? BorderSide(color: AppColors.purple, width: 2)
-                                : BorderSide(
+                                ? const BorderSide(color: AppColors.purple, width: 2)
+                                : const BorderSide(
                                     color: Colors.grey,
                                     width: 0.5,
                                   ),
                             left: (col == 0 || col % 3 == 0)
-                                ? BorderSide(color: AppColors.purple, width: 2)
-                                : BorderSide(
+                                ? const BorderSide(color: AppColors.purple, width: 2)
+                                : const BorderSide(
                                     color: Colors.grey,
                                     width: 0.5,
                                   ),
                             right: (col == 8 || col % 3 == 2)
-                                ? BorderSide(color: AppColors.purple, width: 2)
+                                ? const BorderSide(color: AppColors.purple, width: 2)
                                 : BorderSide.none,
                             bottom: (row == 8 || row % 3 == 2)
-                                ? BorderSide(color: AppColors.purple, width: 2)
+                                ? const BorderSide(color: AppColors.purple, width: 2)
                                 : BorderSide.none,
                           ),
                         ),

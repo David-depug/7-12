@@ -6,10 +6,10 @@ class PermissionDialog extends StatelessWidget {
   final VoidCallback? onDenied;
 
   const PermissionDialog({
-    Key? key,
+    super.key,
     this.onGranted,
     this.onDenied,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

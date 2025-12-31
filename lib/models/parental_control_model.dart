@@ -14,8 +14,8 @@ class ParentalControlModel extends ChangeNotifier {
   String? _parentPassword;
   List<String> _blockedApps = [];
   List<String> _blockedKeywords = [];
-  Map<String, int> _appTimeLimits = {}; // app name -> minutes
-  Map<String, int> _appUsageTime = {}; // app name -> minutes used today
+  final Map<String, int> _appTimeLimits = {}; // app name -> minutes
+  final Map<String, int> _appUsageTime = {}; // app name -> minutes used today
   
   // Getters
   bool get isParentalControlEnabled => _isParentalControlEnabled;

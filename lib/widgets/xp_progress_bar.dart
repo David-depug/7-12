@@ -7,11 +7,11 @@ class XPProgressBar extends StatelessWidget {
   final int level;
 
   const XPProgressBar({
-    Key? key,
+    super.key,
     required this.currentXP,
     required this.levelXP,
     required this.level,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

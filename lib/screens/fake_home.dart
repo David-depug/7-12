@@ -79,13 +79,13 @@ class FakeHome extends StatelessWidget {
           ),
         ),
       ),
-      body: Center(
+      body: const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.lock, color: Colors.red, size: 80),
-            const SizedBox(height: 20),
-            const Text(
+            SizedBox(height: 20),
+            Text(
               "🔒 Secure Mode Active",
               style: TextStyle(
                 color: Colors.red,
@@ -93,8 +93,8 @@ class FakeHome extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 10),
-            const Padding(
+            SizedBox(height: 10),
+            Padding(
               padding: EdgeInsets.symmetric(horizontal: 40),
               child: Text(
                 "This is a decoy screen to protect the application. "

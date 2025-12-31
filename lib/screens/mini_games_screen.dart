@@ -48,13 +48,13 @@ class _MiniGamesScreenState extends State<MiniGamesScreen> {
                   GameCard(
                     title: 'Tic Tac Toe',
                     icon: LucideIcons.grid,
-                    gradient: [Color(0xFF667eea), Color(0xFF764ba2)],
+                    gradient: const [Color(0xFF667eea), Color(0xFF764ba2)],
                     onTap: () => _navigateToGame(context, const XoxoGame()),
                   ),
                   GameCard(
                     title: 'Sudoku',
                     icon: LucideIcons.squareDot,
-                    gradient: [Color(0xFFf093fb), Color(0xFFf5576c)],
+                    gradient: const [Color(0xFFf093fb), Color(0xFFf5576c)],
                     onTap: () => _navigateToGame(context, const SudokuGame()),
                   ),
                 ],

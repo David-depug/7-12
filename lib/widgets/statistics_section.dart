@@ -8,12 +8,12 @@ class StatisticsSection extends StatelessWidget {
   final int xpEarned;
 
   const StatisticsSection({
-    Key? key,
+    super.key,
     required this.totalSessions,
     required this.totalTimeMinutes,
     required this.currentStreak,
     required this.xpEarned,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

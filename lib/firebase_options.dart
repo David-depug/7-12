@@ -31,7 +31,7 @@ class DefaultFirebaseOptions {
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
+              'you can reconfigure this by running the FlutterFire CLI again.',
         );
       default:
         throw UnsupportedError(
@@ -40,15 +40,17 @@ class DefaultFirebaseOptions {
     }
   }
 
+  // Web configuration
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCABrAlPpeRojPIFQlTsVYIc2n8rSEoJZY',
-    appId: '1:228672076341:web:your-web-app-id',
+    apiKey: 'AIzaSyDt1F7pvLLs1QjdvObIuZO3DaC6VCwHWr4',
+    appId: '1:228672076341:web:0dae8fedc490efd2304f7c',
     messagingSenderId: '228672076341',
     projectId: 'up-heal-0001',
     authDomain: 'up-heal-0001.firebaseapp.com',
     storageBucket: 'up-heal-0001.firebasestorage.app',
   );
 
+  // Android configuration
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyCABrAlPpeRojPIFQlTsVYIc2n8rSEoJZY',
     appId: '1:228672076341:android:868be297f5745073304f7c',
@@ -57,6 +59,7 @@ class DefaultFirebaseOptions {
     storageBucket: 'up-heal-0001.firebasestorage.app',
   );
 
+  // iOS configuration
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyCABrAlPpeRojPIFQlTsVYIc2n8rSEoJZY',
     appId: '1:228672076341:ios:a242a6f0c7d593f0304f7c',
@@ -66,6 +69,7 @@ class DefaultFirebaseOptions {
     iosBundleId: 'com.example.mindquest',
   );
 
+  // macOS configuration (reusing iOS App ID)
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyCABrAlPpeRojPIFQlTsVYIc2n8rSEoJZY',
     appId: '1:228672076341:ios:a242a6f0c7d593f0304f7c',
@@ -75,9 +79,10 @@ class DefaultFirebaseOptions {
     iosBundleId: 'com.example.mindquest',
   );
 
+  // Windows configuration (using Web App ID)
   static const FirebaseOptions windows = FirebaseOptions(
     apiKey: 'AIzaSyCABrAlPpeRojPIFQlTsVYIc2n8rSEoJZY',
-    appId: '1:228672076341:web:your-web-app-id',
+    appId: '1:228672076341:web:0dae8fedc490efd2304f7c',
     messagingSenderId: '228672076341',
     projectId: 'up-heal-0001',
     authDomain: 'up-heal-0001.firebaseapp.com',

@@ -325,7 +325,7 @@ class CommunityScreen extends StatelessWidget {
             return _buildLeaderboardItem(
               rank: rank,
               name: 'User $rank',
-              xp: '${(1000 - (rank * 50)).toString()}',
+              xp: (1000 - (rank * 50)).toString(),
               isCurrentUser: rank == 7, // Highlight current user
             );
           }),

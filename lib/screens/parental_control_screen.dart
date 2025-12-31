@@ -545,7 +545,7 @@ class _ParentalControlScreenState extends State<ParentalControlScreen> {
           Switch(
             value: isEnabled,
             onChanged: (_) => onToggle(),
-            activeColor: const Color(0xFF7C3AED),
+            activeThumbColor: const Color(0xFF7C3AED),
           ),
         ],
       ),

@@ -25,26 +25,31 @@ import 'screens/parental_control_screen.dart';
 import 'screens/analytics_screen.dart';
 import 'screens/mini_games_screen.dart';
 import 'screens/sleep_tracker_screen.dart';
+import 'screens/phone_login_screen.dart';
+import 'screens/phone_verification_screen.dart';
+import 'screens/email_login_screen.dart';
+import 'screens/email_verification_screen.dart';
+
 import 'services/screen_time_service.dart';
 import 'package:flutter/services.dart'; // للـ MethodChannel
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Set up error handling
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
     debugPrint('Flutter Error: ${details.exception}');
     debugPrint('Stack trace: ${details.stack}');
   };
-  
+
   // Handle async errors
   PlatformDispatcher.instance.onError = (error, stack) {
     debugPrint('Platform Error: $error');
     debugPrint('Stack trace: $stack');
     return true;
   };
-  
+
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -54,7 +59,7 @@ Future<void> main() async {
     debugPrint('Firebase initialization error: $e');
     // Continue even if Firebase fails to initialize
   }
-  
+
   try {
     runApp(const MindQuestApp());
   } catch (e, stackTrace) {
@@ -80,9 +85,9 @@ class MindQuestApp extends StatelessWidget {
   Widget build(BuildContext context) {
     TextTheme textTheme;
     try {
-      textTheme = GoogleFonts.interTextTheme();
+      textTheme = GoogleFonts.interTextTheme(Theme.of(context).textTheme);
     } catch (e) {
-      textTheme = ThemeData.light().textTheme;
+      textTheme = ThemeData.light().textTheme.apply(fontFamily: 'Inter');
     }
 
     return MultiProvider(
@@ -101,7 +106,9 @@ class MindQuestApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => MissionsModel()),
         ChangeNotifierProvider(create: (_) => ParentalControlModel()),
         ChangeNotifierProvider(create: (_) => SleepModel()),
-        ChangeNotifierProvider(create: (_) => StepCounterModel()), // Keep for backward compatibility if needed
+        ChangeNotifierProvider(
+            create: (_) =>
+                StepCounterModel()), // Keep for backward compatibility if needed
         ChangeNotifierProvider(create: (_) => StepTrackerState()),
         ChangeNotifierProvider(create: (_) {
           final screenTimeModel = ScreenTimeModel();
@@ -118,17 +125,54 @@ class MindQuestApp extends StatelessWidget {
         darkTheme: buildTheme(Brightness.dark).copyWith(textTheme: textTheme),
         themeMode: ThemeMode.system,
         home: const AuthWrapper(),
+        routes: {
+          '/phone-login': (context) => const PhoneLoginScreen(),
+          '/phone-verification': (context) =>
+          const PhoneVerificationScreen(phoneNumber: ''),
+          '/email-login': (context) => const EmailLoginScreen(),
+          '/email-verification': (context) =>
+          const EmailVerificationScreen(email: ''),
+        },
         debugShowCheckedModeBanner: false,
       ),
     );
   }
 }
 
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
 
   @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  bool _isLoading = true; // تم تعديلها لتصبح متغيرة
+
+  @override
+  void initState() {
+    super.initState();
+    initializeApp();
+  }
+
+  Future<void> initializeApp() async {
+    // أي عمليات تهيئة غير متزامنة يمكن وضعها هنا
+    await Future.delayed(const Duration(seconds: 1)); // مثال مؤقت
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Consumer<AuthModel>(
       builder: (context, authModel, child) {
         if (authModel.isAuthenticated) {
@@ -200,7 +244,7 @@ class _RootNavState extends State<RootNav> {
 
   @override
   Widget build(BuildContext context) {
-    final selectedColor = AppColors.purple;
+    const selectedColor = AppColors.purple;
 
     return Scaffold(
       key: rootNavScaffoldKey,
@@ -280,7 +324,8 @@ class _RootNavState extends State<RootNav> {
                         item.label,
                         style: GoogleFonts.inter(
                           color: isSelected ? selectedColor : Colors.white,
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                          fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.normal,
                           fontSize: 16,
                         ),
                       ),

@@ -98,7 +98,7 @@ class Achievement {
 
   static List<Achievement> getDefaultAchievements() => [
     // Focus Streak Achievements
-    Achievement(
+    const Achievement(
       id: 'streak_3',
       title: 'Getting Started',
       description: 'Focus for 3 days in a row',
@@ -107,7 +107,7 @@ class Achievement {
       type: AchievementType.focusStreak,
       requirement: 3,
     ),
-    Achievement(
+    const Achievement(
       id: 'streak_7',
       title: 'Week Warrior',
       description: 'Focus for 7 days in a row',
@@ -116,7 +116,7 @@ class Achievement {
       type: AchievementType.focusStreak,
       requirement: 7,
     ),
-    Achievement(
+    const Achievement(
       id: 'streak_30',
       title: 'Focus Master',
       description: 'Focus for 30 days in a row',
@@ -127,7 +127,7 @@ class Achievement {
     ),
     
     // Total Sessions Achievements
-    Achievement(
+    const Achievement(
       id: 'sessions_10',
       title: 'Dedicated',
       description: 'Complete 10 focus sessions',
@@ -136,7 +136,7 @@ class Achievement {
       type: AchievementType.totalSessions,
       requirement: 10,
     ),
-    Achievement(
+    const Achievement(
       id: 'sessions_50',
       title: 'Focused Mind',
       description: 'Complete 50 focus sessions',
@@ -145,7 +145,7 @@ class Achievement {
       type: AchievementType.totalSessions,
       requirement: 50,
     ),
-    Achievement(
+    const Achievement(
       id: 'sessions_100',
       title: 'Zen Master',
       description: 'Complete 100 focus sessions',
@@ -156,7 +156,7 @@ class Achievement {
     ),
     
     // Total Time Achievements
-    Achievement(
+    const Achievement(
       id: 'time_10h',
       title: 'Time Keeper',
       description: 'Focus for 10 hours total',
@@ -165,7 +165,7 @@ class Achievement {
       type: AchievementType.totalTime,
       requirement: 600, // 10 hours in minutes
     ),
-    Achievement(
+    const Achievement(
       id: 'time_50h',
       title: 'Time Master',
       description: 'Focus for 50 hours total',
@@ -176,7 +176,7 @@ class Achievement {
     ),
     
     // Level Achievements
-    Achievement(
+    const Achievement(
       id: 'level_5',
       title: 'Rising Star',
       description: 'Reach level 5',
@@ -185,7 +185,7 @@ class Achievement {
       type: AchievementType.level,
       requirement: 5,
     ),
-    Achievement(
+    const Achievement(
       id: 'level_10',
       title: 'Focus Champion',
       description: 'Reach level 10',
@@ -196,7 +196,7 @@ class Achievement {
     ),
     
     // Special Achievements
-    Achievement(
+    const Achievement(
       id: 'first_session',
       title: 'First Steps',
       description: 'Complete your first focus session',
@@ -205,7 +205,7 @@ class Achievement {
       type: AchievementType.special,
       requirement: 1,
     ),
-    Achievement(
+    const Achievement(
       id: 'perfect_week',
       title: 'Perfect Week',
       description: 'Focus every day for a week',

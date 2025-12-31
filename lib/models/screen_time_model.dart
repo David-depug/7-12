@@ -37,7 +37,7 @@ class AppUsage {
 class ScreenTimeModel extends ChangeNotifier {
   List<AppUsage> _dailyUsage = [];
   List<AppUsage> _weeklyUsage = [];
-  Map<String, Duration> _categoryUsage = {};
+  final Map<String, Duration> _categoryUsage = {};
   Duration _totalScreenTime = Duration.zero;
   Duration _averageDailyTime = Duration.zero;
   int _focusScore = 0;

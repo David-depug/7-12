@@ -1,8 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'email_verification_waiting_screen.dart';
+import '../widgets/cloudflare_verification_widget.dart';
 import '../models/auth_model.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -21,6 +23,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _isPasswordVisible = false;
   bool _isLoading = false;
   String _passwordStrength = '';
+  bool _isCloudflareVerified = false;
+  String? _cloudflareToken;
+  bool _showCloudflareVerification = false;
 
   @override
   void dispose() {
@@ -52,38 +57,52 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   void _handleSignUp() async {
     if (_formKey.currentState!.validate()) {
+      // Check if Cloudflare verification is required
+      if (!_isCloudflareVerified) {
+        setState(() {
+          _showCloudflareVerification = true;
+        });
+        return;
+      }
+
       setState(() => _isLoading = true);
 
-      final authModel = Provider.of<AuthModel>(context, listen: false);
-
       try {
-        final success = await authModel.signUp(
+        // Use the auth model with Cloudflare verification
+        final authModel = Provider.of<AuthModel>(context, listen: false);
+        bool success = await authModel.signUpWithCloudflare(
           _emailController.text,
           _passwordController.text,
           _nameController.text,
+          _cloudflareToken!,
         );
 
-        if (!success) {
-          // Failed signup, show generic error
+        if (success) {
+          // Navigate to email verification waiting screen
           if (mounted) {
-            _showErrorDialog('Failed to create account. Please try again.');
+            setState(() => _isLoading = false);
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => EmailVerificationWaitingScreen(
+                  email: _emailController.text,
+                  action: 'signup',
+                ),
+              ),
+            );
           }
         } else {
-          // Signup success
           if (mounted) {
-            // Small delay to ensure auth state updates
-            await Future.delayed(const Duration(milliseconds: 500));
-            _showSuccessDialog();
+            setState(() => _isLoading = false);
+            _showErrorDialog(authModel.errorMessage ??
+                'An unexpected error occurred. Please try again.');
           }
         }
       } catch (e) {
         if (mounted) {
+          setState(() => _isLoading = false);
           _showErrorDialog(
               'An unexpected error occurred. Please try again.\n${e.toString()}');
-        }
-      } finally {
-        if (mounted) {
-          setState(() => _isLoading = false);
         }
       }
     }
@@ -95,7 +114,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           backgroundColor: Colors.red.shade50,
           title: Row(
             children: [
@@ -144,7 +163,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           onWillPop: () async => false,
           child: AlertDialog(
             shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             backgroundColor: Colors.green.shade50,
             title: Row(
               children: [
@@ -329,7 +348,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                     return 'Please enter your email';
                                   }
                                   if (!RegExp(
-                                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                                          r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
                                       .hasMatch(value)) {
                                     return 'Please enter a valid email address';
                                   }
@@ -396,6 +415,62 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 },
                               ),
                               const SizedBox(height: 30),
+                              // Cloudflare Verification Widget (shown when needed)
+                              if (_showCloudflareVerification)
+                                Column(
+                                  children: [
+                                    const SizedBox(height: 20),
+                                    Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                            color:
+                                                Colors.white.withOpacity(0.3)),
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          Text(
+                                            'Security Verification',
+                                            style: GoogleFonts.inter(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 10),
+                                          Text(
+                                            'Please complete the security check to continue',
+                                            style: GoogleFonts.inter(
+                                              fontSize: 12,
+                                              color: Colors.white70,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                          const SizedBox(height: 15),
+                                          CloudflareVerificationWidget(
+                                            onVerificationComplete:
+                                                (verified, token) {
+                                              if (mounted) {
+                                                setState(() {
+                                                  _isCloudflareVerified =
+                                                      verified;
+                                                  _cloudflareToken = token;
+                                                  if (verified) {
+                                                    _showCloudflareVerification =
+                                                        false;
+                                                  }
+                                                });
+                                              }
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 20),
+                                  ],
+                                ),
                               // Sign Up Button
                               Container(
                                 width: double.infinity,
@@ -403,7 +478,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(12),
                                   gradient: const LinearGradient(
-                                    colors: [Color(0xFF7C3AED), Color(0xFFF97316)],
+                                    colors: [
+                                      Color(0xFF7C3AED),
+                                      Color(0xFFF97316)
+                                    ],
                                   ),
                                   boxShadow: [
                                     BoxShadow(
@@ -424,22 +502,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                   ),
                                   child: _isLoading
                                       ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                          Colors.white),
-                                    ),
-                                  )
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                    Colors.white),
+                                          ),
+                                        )
                                       : Text(
-                                    'Sign up',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
-                                    ),
-                                  ),
+                                          'Sign up',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white,
+                                          ),
+                                        ),
                                 ),
                               ),
                               const SizedBox(height: 30),
@@ -453,8 +532,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                     ),
                                   ),
                                   Padding(
-                                    padding:
-                                    const EdgeInsets.symmetric(horizontal: 16),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16),
                                     child: Text(
                                       'Or sign up with',
                                       style: GoogleFonts.inter(
@@ -473,7 +552,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               ),
                               const SizedBox(height: 30),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
                                 children: [
                                   _buildSocialButton(LucideIcons.mail, 'G'),
                                   _buildSocialButton(LucideIcons.apple, ''),
@@ -623,17 +703,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
           ),
           suffixIcon: isPassword
               ? IconButton(
-            icon: Icon(
-              _isPasswordVisible ? LucideIcons.eyeOff : LucideIcons.eye,
-              color: Colors.white.withOpacity(0.7),
-              size: 20,
-            ),
-            onPressed: () {
-              setState(() {
-                _isPasswordVisible = !_isPasswordVisible;
-              });
-            },
-          )
+                  icon: Icon(
+                    _isPasswordVisible ? LucideIcons.eyeOff : LucideIcons.eye,
+                    color: Colors.white.withOpacity(0.7),
+                    size: 20,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _isPasswordVisible = !_isPasswordVisible;
+                    });
+                  },
+                )
               : null,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -653,7 +733,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           filled: true,
           fillColor: Colors.transparent,
           contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
         validator: validator,
       ),
@@ -684,13 +764,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
         icon: text.isEmpty
             ? Icon(icon, color: Colors.white, size: 24)
             : Text(
-          text,
-          style: GoogleFonts.inter(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+                text,
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
       ),
     );
   }

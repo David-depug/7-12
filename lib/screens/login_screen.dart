@@ -1,11 +1,15 @@
 // lib/screens/login_screen.dart
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../models/auth_model.dart';
 import 'signup_screen.dart';
+import 'email_verification_waiting_screen.dart';
+import 'phone_login_screen.dart';
+import '../widgets/cloudflare_verification_widget.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -20,6 +24,9 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
+  bool _isCloudflareVerified = false;
+  String? _cloudflareToken;
+  bool _showCloudflareVerification = false;
 
   @override
   void dispose() {
@@ -30,13 +37,24 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _handleLogin() async {
     if (_formKey.currentState!.validate()) {
+      // Check if Cloudflare verification is required
+      if (!_isCloudflareVerified) {
+        setState(() {
+          _showCloudflareVerification = true;
+        });
+        return;
+      }
+
       setState(() => _isLoading = true);
 
       try {
         final authModel = Provider.of<AuthModel>(context, listen: false);
         print('Attempting login for: ${_emailController.text}');
-        final result = await authModel.login(
-            _emailController.text, _passwordController.text);
+        final result = await authModel.loginWithCloudflare(
+          _emailController.text,
+          _passwordController.text,
+          _cloudflareToken!,
+        );
 
         if (mounted) setState(() => _isLoading = false);
 
@@ -47,8 +65,28 @@ class _LoginScreenState extends State<LoginScreen> {
           // 2FA required
           _showErrorDialog('OTP sent to your email. Please verify.');
         } else {
-          // Login failed
-          _showErrorDialog('Invalid email or password');
+          // Check if this is an email verification issue
+          if (authModel.errorMessage != null &&
+              (authModel.errorMessage!
+                      .contains('Email verification required') ||
+                  authModel.errorMessage!.contains('verification link') ||
+                  authModel.errorMessage!.contains('verify your account'))) {
+            // Navigate to email verification waiting screen
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => EmailVerificationWaitingScreen(
+                  email: _emailController.text,
+                  action: 'login',
+                ),
+              ),
+            );
+          } else {
+            // Login failed for other reasons
+            _showErrorDialog(
+              authModel.errorMessage ?? 'Invalid email or password',
+            );
+          }
         }
       } catch (e) {
         if (mounted) {
@@ -107,8 +145,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.lightbulb_outline,
-                            color: Colors.blue.shade600, size: 16),
+                        Icon(
+                          Icons.lightbulb_outline,
+                          color: Colors.blue.shade600,
+                          size: 16,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           'Tips:',
@@ -225,8 +266,10 @@ class _LoginScreenState extends State<LoginScreen> {
             TextButton(
               onPressed: () async {
                 if (emailController.text.isNotEmpty) {
-                  final authModel =
-                  Provider.of<AuthModel>(context, listen: false);
+                  final authModel = Provider.of<AuthModel>(
+                    context,
+                    listen: false,
+                  );
                   await authModel.sendPasswordResetEmail(emailController.text);
 
                   Navigator.of(context).pop();
@@ -234,7 +277,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                          'Password reset email sent to ${emailController.text}'),
+                        'Password reset email sent to ${emailController.text}',
+                      ),
                       backgroundColor: Colors.green,
                     ),
                   );
@@ -265,8 +309,11 @@ class _LoginScreenState extends State<LoginScreen> {
           backgroundColor: Colors.green.shade50,
           title: Row(
             children: [
-              Icon(Icons.check_circle_outline,
-                  color: Colors.green.shade600, size: 28),
+              Icon(
+                Icons.check_circle_outline,
+                color: Colors.green.shade600,
+                size: 28,
+              ),
               const SizedBox(width: 12),
               Text(
                 'Welcome Back!',
@@ -310,11 +357,7 @@ class _LoginScreenState extends State<LoginScreen> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF1a1a2e),
-              Color(0xFF16213e),
-              Color(0xFF0f3460),
-            ],
+            colors: [Color(0xFF1a1a2e), Color(0xFF16213e), Color(0xFF0f3460)],
           ),
         ),
         child: SafeArea(
@@ -389,10 +432,7 @@ class _LoginScreenState extends State<LoginScreen> {
             Colors.white.withOpacity(0.05),
           ],
         ),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.2),
-          width: 1,
-        ),
+        border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
@@ -421,8 +461,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       if (value == null || value.isEmpty) {
                         return 'Please enter your email';
                       }
-                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                          .hasMatch(value)) {
+                      if (!RegExp(
+                        r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                      ).hasMatch(value)) {
                         return 'Please enter a valid email address';
                       }
                       return null;
@@ -462,11 +503,64 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 30),
+                  // Cloudflare Verification Widget (shown when needed)
+                  if (_showCloudflareVerification)
+                    Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                                color: Colors.white.withOpacity(0.3)),
+                          ),
+                          child: Column(
+                            children: [
+                              Text(
+                                'Security Verification',
+                                style: GoogleFonts.inter(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                'Please complete the security check to continue',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: Colors.white70,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 15),
+                              CloudflareVerificationWidget(
+                                onVerificationComplete: (verified, token) {
+                                  if (mounted) {
+                                    setState(() {
+                                      _isCloudflareVerified = verified;
+                                      _cloudflareToken = token;
+                                      if (verified) {
+                                        _showCloudflareVerification = false;
+                                      }
+                                    });
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
                   _buildSignInButton(),
                   const SizedBox(height: 30),
                   _buildDivider(),
                   const SizedBox(height: 30),
                   _buildSocialButtons(),
+                  const SizedBox(height: 20),
+                  _buildPhoneAuthOption(),
                   const SizedBox(height: 30),
                   _buildSignUpLink(),
                 ],
@@ -506,21 +600,21 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         child: _isLoading
             ? const SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-          ),
-        )
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
             : Text(
-          'Sign in',
-          style: GoogleFonts.inter(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
+                'Sign in',
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
       ),
     );
   }
@@ -529,10 +623,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Row(
       children: [
         Expanded(
-          child: Container(
-            height: 1,
-            color: Colors.white.withOpacity(0.2),
-          ),
+          child: Container(height: 1, color: Colors.white.withOpacity(0.2)),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -545,10 +636,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
         Expanded(
-          child: Container(
-            height: 1,
-            color: Colors.white.withOpacity(0.2),
-          ),
+          child: Container(height: 1, color: Colors.white.withOpacity(0.2)),
         ),
       ],
     );
@@ -557,12 +645,110 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildSocialButtons() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _buildSocialButton(LucideIcons.mail, 'G'),
-        _buildSocialButton(LucideIcons.apple, ''),
-        _buildSocialButton(LucideIcons.facebook, 'f'),
-      ],
+      children: [_buildGoogleIcon(), _buildFacebookIcon(), _buildAppleIcon()],
     );
+  }
+
+  Widget _buildGoogleIcon() {
+    return Container(
+      width: 50,
+      height: 50,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: [
+            Color(0xFF4285F4),
+            Color(0xFF34A853),
+            Color(0xFFFBBC05),
+            Color(0xFFEA4335),
+          ],
+        ),
+      ),
+      child: IconButton(
+        onPressed: _handleGoogleSignIn,
+        icon: SvgPicture.network(
+          'https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg',
+          width: 24,
+          height: 24,
+          colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFacebookIcon() {
+    return Container(
+      width: 50,
+      height: 50,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        color: Color(0xFF1877F2), // Facebook blue
+      ),
+      child: const Icon(
+        Icons.facebook,
+        color: Colors.white,
+        size: 24,
+      ),
+    );
+  }
+
+  Widget _buildAppleIcon() {
+    return Container(
+      width: 50,
+      height: 50,
+      decoration:
+          const BoxDecoration(shape: BoxShape.circle, color: Colors.black),
+      child: const IconButton(
+        onPressed: null, // Disabled for now
+        icon: Icon(Icons.apple, color: Colors.white, size: 24),
+        disabledColor: Colors.grey,
+      ),
+    );
+  }
+
+  void _handleGoogleSignIn() async {
+    // Check if Cloudflare verification is required
+    if (!_isCloudflareVerified) {
+      setState(() {
+        _showCloudflareVerification = true;
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final authModel = Provider.of<AuthModel>(context, listen: false);
+      final success =
+          await authModel.signInWithGoogleWithCloudflare(_cloudflareToken!);
+
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+
+      if (success) {
+        // Navigate to home screen after successful Google sign-in
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/home');
+        }
+      } else {
+        // Show error dialog if sign-in failed
+        if (mounted && authModel.errorMessage != null) {
+          _showErrorDialog(authModel.errorMessage!);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        _showErrorDialog('Google Sign-In failed: $e');
+      }
+    }
   }
 
   Widget _buildSignUpLink() {
@@ -571,17 +757,13 @@ class _LoginScreenState extends State<LoginScreen> {
       children: [
         Text(
           "Don't have an account? ",
-          style: GoogleFonts.inter(
-            color: Colors.white.withOpacity(0.7),
-          ),
+          style: GoogleFonts.inter(color: Colors.white.withOpacity(0.7)),
         ),
         GestureDetector(
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (context) => const SignUpScreen(),
-              ),
+              MaterialPageRoute(builder: (context) => const SignUpScreen()),
             );
           },
           child: Text(
@@ -589,6 +771,50 @@ class _LoginScreenState extends State<LoginScreen> {
             style: GoogleFonts.inter(
               color: Colors.white,
               fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPhoneAuthOption() {
+    return Column(
+      children: [
+        Text(
+          'Or sign in with',
+          style: GoogleFonts.inter(
+            color: Colors.white.withOpacity(0.6),
+            fontSize: 14,
+          ),
+        ),
+        const SizedBox(height: 16),
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const PhoneLoginScreen()),
+            );
+          },
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withOpacity(0.3)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(LucideIcons.phone, color: Colors.white.withOpacity(0.8)),
+                const SizedBox(width: 8),
+                Text(
+                  'Phone Number',
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -615,19 +841,13 @@ class _LoginScreenState extends State<LoginScreen> {
             Colors.white.withOpacity(0.05),
           ],
         ),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.2),
-          width: 1,
-        ),
+        border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
       ),
       child: TextFormField(
         controller: controller,
         keyboardType: keyboardType,
         obscureText: isPassword ? !_isPasswordVisible : false,
-        style: GoogleFonts.inter(
-          color: Colors.white,
-          fontSize: 16,
-        ),
+        style: GoogleFonts.inter(color: Colors.white, fontSize: 16),
         decoration: InputDecoration(
           labelText: label,
           labelStyle: GoogleFonts.inter(
@@ -641,17 +861,17 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           suffixIcon: isPassword
               ? IconButton(
-            icon: Icon(
-              _isPasswordVisible ? LucideIcons.eyeOff : LucideIcons.eye,
-              color: Colors.white.withOpacity(0.7),
-              size: 20,
-            ),
-            onPressed: () {
-              setState(() {
-                _isPasswordVisible = !_isPasswordVisible;
-              });
-            },
-          )
+                  icon: Icon(
+                    _isPasswordVisible ? LucideIcons.eyeOff : LucideIcons.eye,
+                    color: Colors.white.withOpacity(0.7),
+                    size: 20,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _isPasswordVisible = !_isPasswordVisible;
+                    });
+                  },
+                )
               : null,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -670,44 +890,12 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           filled: true,
           fillColor: Colors.transparent,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        ),
-        validator: validator,
-      ),
-    );
-  }
-
-  Widget _buildSocialButton(IconData icon, String text) {
-    return Container(
-      width: 50,
-      height: 50,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white.withOpacity(0.1),
-            Colors.white.withOpacity(0.05),
-          ],
-        ),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.2),
-          width: 1,
-        ),
-      ),
-      child: IconButton(
-        onPressed: () {},
-        icon: text.isEmpty
-            ? Icon(icon, color: Colors.white, size: 24)
-            : Text(
-          text,
-          style: GoogleFonts.inter(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
           ),
         ),
+        validator: validator,
       ),
     );
   }
