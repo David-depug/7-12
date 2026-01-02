@@ -60,6 +60,13 @@ class NotificationService {
       importance: Importance.high,
     );
 
+    const moodTrackerChannel = AndroidNotificationChannel(
+      'mood_tracker',
+      'Mood Tracker Reminder',
+      description: 'Daily reminder to track your mood',
+      importance: Importance.high,
+    );
+
     final androidPlugin = _notifications
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>();
@@ -69,6 +76,7 @@ class NotificationService {
     await androidPlugin?.createNotificationChannel(focusCompleteChannel);
     await androidPlugin?.createNotificationChannel(streakChannel);
     await androidPlugin?.createNotificationChannel(dailyJournalChannel);
+    await androidPlugin?.createNotificationChannel(moodTrackerChannel);
   }
 
   static Future<void> _requestPermissions() async {
@@ -119,6 +127,45 @@ class NotificationService {
   payload: 'evening_reflection',
 );
     print('Scheduled daily journal reminder for $scheduled (local time: ${now.hour}:${now.minute.toString().padLeft(2, '0')})');
+  }
+
+  /// Schedule a daily notification at 21:00 (9 PM) local time for mood tracking.
+  static Future<void> scheduleDailyMoodReminder() async {
+    // Cancel any existing notification with this ID to avoid duplicates
+    await _notifications.cancel(3000);
+    
+    final now = tz.TZDateTime.now(tz.local);
+    // Next 21:00 local (9 PM)
+    var scheduled =
+        tz.TZDateTime(tz.local, now.year, now.month, now.day, 21, 0);
+    if (scheduled.isBefore(now)) {
+      scheduled = scheduled.add(const Duration(days: 1));
+    }
+
+    const androidDetails = AndroidNotificationDetails(
+      'mood_tracker',
+      'Mood Tracker Reminder',
+      channelDescription: 'Daily reminder to track your mood',
+      importance: Importance.high,
+      priority: Priority.high,
+      icon: '@mipmap/ic_launcher',
+      color: Color(0xFF6B46C1),
+    );
+
+    final notificationDetails = NotificationDetails(android: androidDetails);
+
+    // Daily schedule at 21:00 local time (9 PM).
+    await _notifications.zonedSchedule(
+      3000, // id
+      '😊 Track Your Mood',
+      'How are you feeling today? Take a moment to track your mood.',
+      scheduled, // MUST be tz.TZDateTime
+      notificationDetails,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      matchDateTimeComponents: DateTimeComponents.time,
+      payload: 'mood_tracking',
+    );
+    print('Scheduled daily mood reminder for $scheduled (local time: ${now.hour}:${now.minute.toString().padLeft(2, '0')})');
   }
 
   /// Debug helper: show a test notification after a short delay (no scheduling).

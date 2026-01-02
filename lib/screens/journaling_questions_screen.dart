@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/journal_entry.dart';
-//import '../providers/ai_analysis_provider.dart';
+import '../services/ai_analysis_service.dart';
 
 class JournalingDetailsScreen extends StatefulWidget {
   final JournalEntry entry;
@@ -25,17 +25,13 @@ class _JournalingDetailsScreenState
     });
 
     try {
-      // Combine all answers for analysis
-      final combinedText = widget.entry.answers
-          .map((qa) => '${qa.question}\n${qa.answer}')
-          .join('\n\n');
-
-      //final analysisService = AiAnalysisService();
-      //final result = await analysisService.analyzeJournalEntry(combinedText);
+      final analysisService = AiAnalysisService();
+      // Analyze the journal entry using the AI bot endpoint
+      final result = await analysisService.analyzeJournalEntry(widget.entry);
 
       if (mounted) {
         setState(() {
-          //_analysisResult = result;
+          _analysisResult = result;
           _isAnalyzing = false;
         });
       }
@@ -45,7 +41,7 @@ class _JournalingDetailsScreenState
           _isAnalyzing = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error analyzing: $e')),
+          SnackBar(content: Text('Error analyzing: ${e.toString()}')),
         );
       }
     }
@@ -272,9 +268,22 @@ class _JournalingDetailsScreenState
                       ),
                     )
                   else
-                    Text(
-                      'Get AI-powered insights about your journal entry',
-                      style: Theme.of(context).textTheme.bodyMedium,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Get AI-powered insights about your journal entry',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'AI analysis will be available once the backend is configured.',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Colors.grey.shade600,
+                                fontStyle: FontStyle.italic,
+                              ),
+                        ),
+                      ],
                     ),
                   const SizedBox(height: 12),
                   SizedBox(

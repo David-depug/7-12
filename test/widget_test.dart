@@ -11,16 +11,27 @@ import 'package:mindquest/main.dart';
 import 'package:mindquest/services/journal_local_service.dart';
 import 'package:mindquest/services/journal_api_service.dart';
 import 'package:mindquest/services/journal_service.dart';
+import 'package:mindquest/services/mood_local_service.dart';
+import 'package:mindquest/services/mood_api_service.dart';
+import 'package:mindquest/services/mood_service.dart';
 
 void main() {
   testWidgets('App loads without crashing', (WidgetTester tester) async {
-    // Minimal wiring for required journalService in tests.
+    // Minimal wiring for required services in tests.
     final journalService = JournalService(
       localService: JournalLocalService(),
       apiService: JournalApiService(),
     );
 
-    await tester.pumpWidget(MindQuestApp(journalService: journalService));
+    final moodService = MoodService(
+      localService: MoodLocalService(),
+      apiService: MoodApiService(),
+    );
+
+    await tester.pumpWidget(MindQuestApp(
+      journalService: journalService,
+      moodService: moodService,
+    ));
 
     // Verify that the app loads
     expect(find.text('MindQuest'), findsOneWidget);

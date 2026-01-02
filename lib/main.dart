@@ -26,11 +26,16 @@ import 'screens/mini_games_screen.dart';
 import 'screens/sleep_tracker_screen.dart';
 import 'screens/step_tracker_screen.dart';
 import 'screens/journal_screen.dart';
+import 'screens/mood_tracker_screen.dart';
 import 'services/screen_time_service.dart';
 import 'services/journal_api_service.dart';
 import 'services/journal_local_service.dart';
 import 'services/journal_service.dart';
+import 'services/mood_api_service.dart';
+import 'services/mood_local_service.dart';
+import 'services/mood_service.dart';
 import 'services/notification_service.dart';
+import 'models/mood_model.dart';
 import 'package:flutter/services.dart'; // للـ MethodChannel
 
 Future<void> main() async {
@@ -44,19 +49,35 @@ Future<void> main() async {
     apiService: JournalApiService(),
   );
 
-  // Initialize notifications and schedule the daily 10 PM journal reminder.
+  final moodLocalService = MoodLocalService();
+  await moodLocalService.init();
+  final moodService = MoodService(
+    localService: moodLocalService,
+    apiService: MoodApiService(),
+  );
+
+  // Initialize notifications and schedule reminders.
   await NotificationService.initialize();
   await NotificationService.scheduleDailyJournalReminder();
+  await NotificationService.scheduleDailyMoodReminder();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(MindQuestApp(journalService: journalService));
+  runApp(MindQuestApp(
+    journalService: journalService,
+    moodService: moodService,
+  ));
 }
 
 class MindQuestApp extends StatelessWidget {
-  const MindQuestApp({super.key, required this.journalService});
+  const MindQuestApp({
+    super.key,
+    required this.journalService,
+    required this.moodService,
+  });
 
   final JournalService journalService;
+  final MoodService moodService;
 
   @override
   Widget build(BuildContext context) {
@@ -91,6 +112,9 @@ class MindQuestApp extends StatelessWidget {
         }),
         ChangeNotifierProvider(
           create: (_) => JournalModel(journalService)..loadEntries(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => MoodModel(moodService)..loadEntries(),
         ),
       ],
       child: MaterialApp(
@@ -146,6 +170,7 @@ class _RootNavState extends State<RootNav> {
     const ParentalControlScreen(),
     const ProfileScreen(),
     const JournalScreen(),
+    const MoodTrackerScreen(),
   ];
 
   final List<_NavItem> _navItems = const [
@@ -159,6 +184,7 @@ class _RootNavState extends State<RootNav> {
     _NavItem(icon: LucideIcons.shield, label: 'Parental', index: 7),
     _NavItem(icon: LucideIcons.user, label: 'Profile', index: 8),
     _NavItem(icon: LucideIcons.bookOpen, label: 'Journaling', index: 9),
+    _NavItem(icon: LucideIcons.smile, label: 'Mood Tracker', index: 10),
   ];
 
   void _navigateTo(int index) {
