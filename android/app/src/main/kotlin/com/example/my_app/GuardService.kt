@@ -7,18 +7,28 @@ import android.content.pm.ServiceInfo
 import android.os.*
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import android.content.Intent.ACTION_MAIN
+import android.content.Intent.CATEGORY_HOME
 
 private const val TAG = "GuardService"
 private const val CHANNEL_ID = "guard_service_channel"
 private const val RESTART_INTENT = "com.example.flutter_my_app_main.RESTART_GUARD"
+private const val ACTION_START_BLOCKING = "com.example.flutter_my_app_main.START_BLOCKING"
+private const val ACTION_STOP_BLOCKING = "com.example.flutter_my_app_main.STOP_BLOCKING"
 
 class GuardService : Service() {
 
     private var wakeLock: PowerManager.WakeLock? = null
     private val restartDelayMs = 5000L
+    private val checkIntervalMs = 1000L // Check every second
+    private var checkHandler: Handler? = null
+    private var checkRunnable: Runnable? = null
+    private lateinit var database: AppBlockDatabase
+    private var isBlockingEnabled = false
 
     override fun onCreate() {
         super.onCreate()
+        database = AppBlockDatabase(this)
         createNotificationChannel()
         acquireWakeLock()
         startForegroundWithNotification()
@@ -39,8 +49,8 @@ class GuardService : Service() {
 
     private fun startForegroundWithNotification() {
         val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Guard Service Running")
-            .setContentText("Monitoring app for security")
+            .setContentTitle("App Blocking Service")
+            .setContentText(if (isBlockingEnabled) "Monitoring and blocking apps" else "Service running")
             .setSmallIcon(android.R.drawable.ic_lock_lock)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
@@ -76,13 +86,97 @@ class GuardService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // If service is killed, START_STICKY requests restart
-        Log.d(TAG, "onStartCommand called")
+        Log.d(TAG, "onStartCommand called with action: ${intent?.action}")
+
+        when (intent?.action) {
+            ACTION_START_BLOCKING -> startBlocking()
+            ACTION_STOP_BLOCKING -> stopBlocking()
+        }
+
         return START_STICKY
+    }
+
+    fun startBlocking() {
+        if (isBlockingEnabled) return
+
+        isBlockingEnabled = true
+        startAppMonitoring()
+        updateNotification()
+        Log.d(TAG, "App blocking started")
+    }
+
+    fun stopBlocking() {
+        if (!isBlockingEnabled) return
+
+        isBlockingEnabled = false
+        stopAppMonitoring()
+        updateNotification()
+        Log.d(TAG, "App blocking stopped")
+    }
+
+    private fun startAppMonitoring() {
+        if (checkHandler == null) {
+            checkHandler = Handler(Looper.getMainLooper())
+        }
+
+        checkRunnable = object : Runnable {
+            override fun run() {
+                if (isBlockingEnabled) {
+                    checkAndBlockForegroundApp()
+                    checkHandler?.postDelayed(this, checkIntervalMs)
+                }
+            }
+        }
+
+        checkHandler?.post(checkRunnable!!)
+    }
+
+    private fun stopAppMonitoring() {
+        checkRunnable?.let { checkHandler?.removeCallbacks(it) }
+        checkRunnable = null
+    }
+
+    private fun checkAndBlockForegroundApp() {
+        try {
+            val foregroundApp = UsageStatsUtils.getForegroundApp(this)
+            if (foregroundApp != null && database.isAppBlocked(foregroundApp)) {
+                Log.d(TAG, "Blocking app: $foregroundApp")
+                blockApp()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error checking foreground app: ${e.message}")
+        }
+    }
+
+    private fun blockApp() {
+        try {
+            val homeIntent = Intent(ACTION_MAIN).apply {
+                addCategory(CATEGORY_HOME)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            startActivity(homeIntent)
+            Log.d(TAG, "Sent user to home screen")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error blocking app: ${e.message}")
+        }
+    }
+
+    private fun updateNotification() {
+        val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("App Blocking Service")
+            .setContentText(if (isBlockingEnabled) "Monitoring and blocking apps" else "Service running")
+            .setSmallIcon(android.R.drawable.ic_lock_lock)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setOngoing(true)
+            .build()
+
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify(101, notification)
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        stopAppMonitoring()
         releaseWakeLock()
         scheduleRestart()
         Log.d(TAG, "GuardService destroyed; scheduled restart")

@@ -25,6 +25,7 @@ import 'screens/parental_control_screen.dart';
 import 'screens/analytics_screen.dart';
 import 'screens/mini_games_screen.dart';
 import 'screens/sleep_tracker_screen.dart';
+import 'screens/block_apps_screen.dart';
 import 'services/screen_time_service.dart';
 import 'package:flutter/services.dart'; // للـ MethodChannel
 
@@ -163,6 +164,7 @@ class _RootNavState extends State<RootNav> {
     const SleepTrackerScreen(),
     const StepTrackerScreen(),
     const ParentalControlScreen(),
+    const BlockAppsScreen(),
     const ProfileScreen(),
   ];
 
@@ -175,7 +177,8 @@ class _RootNavState extends State<RootNav> {
     _NavItem(icon: LucideIcons.moon, label: 'Sleep Tracker', index: 5),
     _NavItem(icon: LucideIcons.footprints, label: 'Step Tracker', index: 6),
     _NavItem(icon: LucideIcons.shield, label: 'Parental', index: 7),
-    _NavItem(icon: LucideIcons.user, label: 'Profile', index: 8),
+    _NavItem(icon: LucideIcons.ban, label: 'Block Apps', index: 8),
+    _NavItem(icon: LucideIcons.user, label: 'Profile', index: 9),
   ];
 
   void _navigateTo(int index) {

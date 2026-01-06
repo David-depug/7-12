@@ -129,13 +129,81 @@ class MainActivity: FlutterActivity() {
                     result.success(true)
                 }
                 "hasUsagePermission" -> result.success(hasUsageAccessPermission(this))
+                "checkUsageStatsPermission" -> result.success(hasUsageAccessPermission(this))
+                "requestUsageStatsPermission" -> {
+                    requestUsageAccessPermission(this)
+                    result.success(true)
+                }
+                "checkAccessibilityPermission" -> result.success(isAccessibilityServiceEnabled(this))
+                "requestAccessibilityPermission" -> {
+                    requestAccessibilityPermission(this)
+                    result.success(true)
+                }
                 "getUsageStats" -> {
                     try {
-                        val usageStatsList = getUsageStats(this)
+                        val usageStatsList = UsageStatsUtils.getInstalledApps(this)
                         result.success(usageStatsList)
                     } catch (e: Exception) {
                         Log.e(TAG, "Error fetching usage stats: ${e.message}")
                         result.error("USAGE_ERROR", "Failed to retrieve usage stats.", e.message)
+                    }
+                }
+                "getInstalledApps" -> {
+                    try {
+                        val installedApps = UsageStatsUtils.getInstalledApps(this)
+                        result.success(installedApps)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error fetching installed apps: ${e.message}")
+                        result.error("APPS_ERROR", "Failed to retrieve installed apps.", e.message)
+                    }
+                }
+                "setAppBlockStatus" -> {
+                    val packageName = call.argument<String>("packageName")
+                    val isBlocked = call.argument<Boolean>("isBlocked") ?: false
+                    if (packageName != null) {
+                        val database = AppBlockDatabase(this)
+                        val success = database.setAppBlocked(packageName, isBlocked)
+                        result.success(success)
+                    } else {
+                        result.error("INVALID_ARGS", "Package name is required", null)
+                    }
+                }
+                "getBlockedApps" -> {
+                    try {
+                        val database = AppBlockDatabase(this)
+                        val blockedApps = database.getAllBlockedApps()
+                        result.success(blockedApps)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error fetching blocked apps: ${e.message}")
+                        result.error("DB_ERROR", "Failed to retrieve blocked apps.", e.message)
+                    }
+                }
+                "startBlockingService" -> {
+                    try {
+                        val serviceIntent = Intent(this, GuardService::class.java).apply {
+                            action = "com.example.flutter_my_app_main.START_BLOCKING"
+                        }
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            startForegroundService(serviceIntent)
+                        } else {
+                            startService(serviceIntent)
+                        }
+                        result.success(true)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error starting blocking service: ${e.message}")
+                        result.error("SERVICE_ERROR", "Failed to start blocking service.", e.message)
+                    }
+                }
+                "stopBlockingService" -> {
+                    try {
+                        val serviceIntent = Intent(this, GuardService::class.java).apply {
+                            action = "com.example.flutter_my_app_main.STOP_BLOCKING"
+                        }
+                        startService(serviceIntent) // Send stop command
+                        result.success(true)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error stopping blocking service: ${e.message}")
+                        result.error("SERVICE_ERROR", "Failed to stop blocking service.", e.message)
                     }
                 }
                 "blockApp" -> {
@@ -218,38 +286,19 @@ class MainActivity: FlutterActivity() {
         return false
     }
 
-    private fun getUsageStats(context: Context): List<Map<String, Any>> {
-        if (!hasUsageAccessPermission(context)) return emptyList()
+    private fun isAccessibilityServiceEnabled(context: Context): Boolean {
+        val accessibilityManager = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as android.view.accessibility.AccessibilityManager
+        val enabledServices = accessibilityManager.getEnabledAccessibilityServiceList(android.view.accessibility.AccessibilityEvent.TYPES_ALL_MASK)
+        return enabledServices.any { it.id == "${context.packageName}/.AppBlockAccessibilityService" }
+    }
 
-        val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
-        val packageManager = context.packageManager
-        val calendar = Calendar.getInstance()
-        val endTime = System.currentTimeMillis()
-        calendar.add(Calendar.DAY_OF_YEAR, -1)
-        val startTime = calendar.timeInMillis
-
-        val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, endTime)
-        val usageList = mutableListOf<Map<String, Any>>()
-
-        stats?.filter { it.totalTimeInForeground > 0 }?.forEach { usageStats ->
-            try {
-                val packageName = usageStats.packageName
-                val appInfo = packageManager.getApplicationInfo(packageName, 0)
-                val appName = packageManager.getApplicationLabel(appInfo).toString()
-                val totalTimeInSeconds = (usageStats.totalTimeInForeground / 1000).toInt()
-
-                val usageMap = mapOf(
-                    "appName" to appName,
-                    "packageName" to packageName,
-                    "totalTimeInSeconds" to totalTimeInSeconds
-                )
-                usageList.add(usageMap)
-            } catch (e: Exception) {
-                Log.w(TAG, "Package not found: ${usageStats.packageName}")
-            }
+    private fun requestAccessibilityPermission(context: Context) {
+        try {
+            val intent = Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            Log.e(TAG, "Cannot open Accessibility settings: ${e.message}")
         }
-
-        return usageList.sortedByDescending { it["totalTimeInSeconds"] as Int }
     }
 }
 

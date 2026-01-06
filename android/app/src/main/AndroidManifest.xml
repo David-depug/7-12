@@ -22,6 +22,10 @@
     <!-- for Android 13+ notifications -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- App blocking permissions -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" android:minSdkVersion="34" />
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+
     <application
         android:label="@string/app_name"
         android:name="${applicationName}"
@@ -86,11 +90,19 @@
             android:name=".RestartReceiver"
             android:exported="true" />
 
-        <!--
-           ✅ التعديل تم هنا:
-           1. حذفنا android:permission من داخل الوسم (لأنه كان يمنع التشغيل).
-           2. أبقينا على foregroundServiceType.
-        -->
+        <!-- App Blocking Accessibility Service -->
+        <service
+            android:name=".AppBlockAccessibilityService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
         <service
             android:name=".GuardService"
             android:enabled="true"
