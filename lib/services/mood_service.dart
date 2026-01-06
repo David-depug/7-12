@@ -19,9 +19,15 @@ class MoodService {
     // Best-effort sync to backend.
     try {
       await apiService.saveEntry(entry);
+      print('MoodService.saveEntry: Successfully synced entry ${entry.id} to Firestore');
     } catch (e) {
       // Log and keep local; sync can retry later.
       print('MoodService.saveEntry backend error: $e');
+      print('MoodService.saveEntry: Entry ${entry.id} saved locally but NOT synced to Firestore');
+      // Enhanced error logging for debugging
+      if (e is ApiException) {
+        print('MoodService.saveEntry: ApiException - ${e.message} (status: ${e.statusCode})');
+      }
     }
   }
 

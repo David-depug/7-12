@@ -1,47 +1,96 @@
-import 'package:dio/dio.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/mood_entry.dart';
 import '../utils/api_exceptions.dart';
-import '../config.dart';
 
-/// Service for mood API operations.
-/// Handles all backend communication for mood entries.
+/// Service for mood Firestore operations.
+/// Handles all backend communication for mood entries using Firebase Firestore.
 class MoodApiService {
-  final Dio _dio;
+  final FirebaseFirestore _firestore;
+  final FirebaseAuth _auth;
 
-  MoodApiService({Dio? dio})
-      : _dio = dio ??
-            Dio(
-              BaseOptions(
-                baseUrl: API_BASE_URL,
-                connectTimeout: const Duration(seconds: 30),
-                receiveTimeout: const Duration(seconds: 30),
-              ),
-            );
+  MoodApiService({
+    FirebaseFirestore? firestore,
+    FirebaseAuth? auth,
+  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance;
 
-  /// Save a mood entry to the backend
+  /// Get the current user ID, throwing an error if not authenticated
+  String _getCurrentUserId() {
+    final user = _auth.currentUser;
+    print('MoodApiService._getCurrentUserId: Current user = ${user?.uid ?? "NULL"}');
+    if (user == null) {
+      print('MoodApiService._getCurrentUserId: ERROR - User is not authenticated');
+      throw UnauthorizedException('User must be authenticated to save mood entries');
+    }
+    return user.uid;
+  }
+
+  /// Get the mood entries collection reference for the current user
+  CollectionReference _getMoodCollection() {
+    final userId = _getCurrentUserId();
+    return _firestore.collection('users').doc(userId).collection('mood_entries');
+  }
+
+  /// Save a mood entry to Firestore
   Future<void> saveEntry(MoodEntry entry) async {
     try {
-      await _dio.post(
-        '/mood/entries',
-        data: entry.toJson(),
-      );
-    } on DioException catch (e) {
-      _handleDioError(e);
+      final userId = _getCurrentUserId();
+      print('MoodApiService.saveEntry: Attempting to save entry ${entry.id} for user $userId');
+      final collection = _getMoodCollection();
+      print('MoodApiService.saveEntry: Collection path = users/$userId/mood_entries');
+      final entryData = entry.toJson();
+      
+      // Add userId and serverTimestamp for tracking
+      entryData['userId'] = userId;
+      entryData['createdAt'] = FieldValue.serverTimestamp();
+      entryData['updatedAt'] = FieldValue.serverTimestamp();
+      
+      print('MoodApiService.saveEntry: Writing to Firestore document: ${entry.id}');
+      await collection.doc(entry.id).set(entryData, SetOptions(merge: true));
+      print('MoodApiService: Entry ${entry.id} saved to Firestore successfully');
+    } catch (e) {
+      print('MoodApiService: Error saving entry to Firestore: $e');
+      if (e is FirebaseException) {
+        print('MoodApiService: FirebaseException details - code: ${e.code}, message: ${e.message}');
+        _handleFirestoreError(e);
+      } else {
+        print('MoodApiService: Non-Firebase exception: ${e.runtimeType}');
+        throw ApiException('Failed to save mood entry: ${e.toString()}', 500);
+      }
     }
   }
 
-  /// Get all mood entries from backend
+  /// Get all mood entries from Firestore for the current user
   Future<List<MoodEntry>> getEntries() async {
     try {
-      final response = await _dio.get('/mood/entries');
-      if (response.data is List) {
-        return (response.data as List)
-            .map((e) => MoodEntry.fromJson(e as Map<String, dynamic>))
-            .toList();
+      final collection = _getMoodCollection();
+      final snapshot = await collection
+          .orderBy('timestamp', descending: true)
+          .get();
+      
+      final entries = <MoodEntry>[];
+      for (var doc in snapshot.docs) {
+        try {
+          final data = doc.data() as Map<String, dynamic>;
+          // Remove Firestore-specific fields before parsing
+          data.remove('createdAt');
+          data.remove('updatedAt');
+          data.remove('userId');
+          
+          entries.add(MoodEntry.fromJson(data));
+        } catch (e) {
+          print('MoodApiService: Error parsing entry ${doc.id}: $e');
+        }
       }
-      return [];
-    } on DioException catch (e) {
-      _handleDioError(e);
+      
+      print('MoodApiService: Retrieved ${entries.length} entries from Firestore');
+      return entries;
+    } catch (e) {
+      print('MoodApiService: Error getting entries from Firestore: $e');
+      if (e is FirebaseException) {
+        _handleFirestoreError(e);
+      }
       return [];
     }
   }
@@ -49,21 +98,29 @@ class MoodApiService {
   /// Get a mood entry by date
   Future<MoodEntry?> getEntryByDate(DateTime date) async {
     try {
-      final response = await _dio.get(
-        '/mood/entries',
-        queryParameters: {
-          'date': date.toIso8601String().split('T')[0], // YYYY-MM-DD format
-        },
-      );
-      if (response.data != null) {
-        return MoodEntry.fromJson(response.data as Map<String, dynamic>);
+      final collection = _getMoodCollection();
+      // Format date as YYYY-MM-DD for comparison
+      final snapshot = await collection
+          .where('date', isEqualTo: date.toIso8601String().split('T')[0])
+          .limit(1)
+          .get();
+      
+      if (snapshot.docs.isEmpty) {
+        return null;
       }
-      return null;
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 404) {
-        return null; // Not found is not an error
+      
+      final data = snapshot.docs.first.data() as Map<String, dynamic>;
+      // Remove Firestore-specific fields
+      data.remove('createdAt');
+      data.remove('updatedAt');
+      data.remove('userId');
+      
+      return MoodEntry.fromJson(data);
+    } catch (e) {
+      print('MoodApiService: Error getting entry by date from Firestore: $e');
+      if (e is FirebaseException) {
+        _handleFirestoreError(e);
       }
-      _handleDioError(e);
       return null;
     }
   }
@@ -72,35 +129,61 @@ class MoodApiService {
   Future<List<MoodEntry>> getEntriesInRange(
       DateTime start, DateTime end) async {
     try {
-      final response = await _dio.get(
-        '/mood/entries',
-        queryParameters: {
-          'start': start.toIso8601String(),
-          'end': end.toIso8601String(),
-        },
-      );
-      if (response.data is List) {
-        return (response.data as List)
-            .map((e) => MoodEntry.fromJson(e as Map<String, dynamic>))
-            .toList();
+      final collection = _getMoodCollection();
+      // Use timestamp for range queries (more efficient than date string)
+      final startTimestamp = start.toIso8601String();
+      final endTimestamp = end.add(const Duration(days: 1)).toIso8601String(); // Include full end day
+      
+      final snapshot = await collection
+          .where('timestamp', isGreaterThanOrEqualTo: startTimestamp)
+          .where('timestamp', isLessThanOrEqualTo: endTimestamp)
+          .orderBy('timestamp', descending: true)
+          .get();
+      
+      final entries = <MoodEntry>[];
+      for (var doc in snapshot.docs) {
+        try {
+          final data = doc.data() as Map<String, dynamic>;
+          // Remove Firestore-specific fields
+          data.remove('createdAt');
+          data.remove('updatedAt');
+          data.remove('userId');
+          
+          entries.add(MoodEntry.fromJson(data));
+        } catch (e) {
+          print('MoodApiService: Error parsing entry ${doc.id}: $e');
+        }
       }
-      return [];
-    } on DioException catch (e) {
-      _handleDioError(e);
+      
+      return entries;
+    } catch (e) {
+      print('MoodApiService: Error getting entries in range from Firestore: $e');
+      if (e is FirebaseException) {
+        _handleFirestoreError(e);
+      }
       return [];
     }
   }
 
-  /// Delete a mood entry
+  /// Delete a mood entry from Firestore
   Future<void> deleteEntry(String id) async {
     try {
-      await _dio.delete('/mood/entries/$id');
-    } on DioException catch (e) {
-      _handleDioError(e);
+      final collection = _getMoodCollection();
+      await collection.doc(id).delete();
+      print('MoodApiService: Entry $id deleted from Firestore');
+    } catch (e) {
+      print('MoodApiService: Error deleting entry from Firestore: $e');
+      if (e is FirebaseException) {
+        _handleFirestoreError(e);
+      } else {
+        throw ApiException('Failed to delete mood entry: ${e.toString()}', 500);
+      }
     }
   }
 
   /// Get mood entries for AI analysis
+  /// This method is specifically designed for AI bots to fetch and analyze mood data
+  /// Returns entries with all necessary data for analysis (mood, timestamps)
   Future<List<MoodEntry>> getEntriesForAnalysis({
     String? userId,
     DateTime? startDate,
@@ -108,44 +191,103 @@ class MoodApiService {
     int? limit,
   }) async {
     try {
-      final queryParams = <String, dynamic>{};
-      if (userId != null) queryParams['userId'] = userId;
-      if (startDate != null) {
-        queryParams['startDate'] = startDate.toIso8601String();
+      CollectionReference collection;
+      
+      // If userId is provided, use that user's collection (for AI bot access)
+      // Otherwise, use current user's collection
+      if (userId != null) {
+        collection = _firestore
+            .collection('users')
+            .doc(userId)
+            .collection('mood_entries');
+      } else {
+        collection = _getMoodCollection();
       }
-      if (endDate != null) {
-        queryParams['endDate'] = endDate.toIso8601String();
+      
+      Query query = collection.orderBy('timestamp', descending: true);
+      
+      if (startDate != null && endDate != null) {
+        // Firestore requires composite index for multiple range queries
+        // Use timestamp for range queries
+        query = query
+            .where('timestamp', isGreaterThanOrEqualTo: startDate.toIso8601String())
+            .where('timestamp', isLessThanOrEqualTo: endDate.add(const Duration(days: 1)).toIso8601String());
+      } else if (startDate != null) {
+        query = query.where('timestamp', 
+            isGreaterThanOrEqualTo: startDate.toIso8601String());
+      } else if (endDate != null) {
+        query = query.where('timestamp', 
+            isLessThanOrEqualTo: endDate.add(const Duration(days: 1)).toIso8601String());
       }
-      if (limit != null) queryParams['limit'] = limit;
-
-      final response = await _dio.get(
-        '/mood/entries/analysis',
-        queryParameters: queryParams.isEmpty ? null : queryParams,
-      );
-
-      if (response.data is List) {
-        return (response.data as List)
-            .map((e) => MoodEntry.fromJson(e as Map<String, dynamic>))
-            .toList();
+      
+      if (limit != null) {
+        query = query.limit(limit);
       }
-      return [];
-    } on DioException catch (e) {
-      _handleDioError(e);
+      
+      final snapshot = await query.get();
+      
+      final entries = <MoodEntry>[];
+      for (var doc in snapshot.docs) {
+        try {
+          final data = doc.data() as Map<String, dynamic>;
+          // Remove Firestore-specific fields
+          data.remove('createdAt');
+          data.remove('updatedAt');
+          data.remove('userId');
+          
+          entries.add(MoodEntry.fromJson(data));
+        } catch (e) {
+          print('MoodApiService: Error parsing entry ${doc.id} for analysis: $e');
+        }
+      }
+      
+      print('MoodApiService: Retrieved ${entries.length} entries for AI analysis');
+      return entries;
+    } catch (e) {
+      print('MoodApiService: Error getting entries for analysis: $e');
+      if (e is FirebaseException) {
+        _handleFirestoreError(e);
+      }
       return [];
     }
   }
 
   /// Analyze a single mood entry
   /// Sends the entry to the AI bot and returns insights
+  /// Note: This would typically call a Cloud Function or external API
+  /// For now, this is a placeholder that returns the entry data
   Future<Map<String, dynamic>> analyzeEntry(String entryId) async {
     try {
-      final response = await _dio.post(
-        '/mood/entries/$entryId/analyze',
-      );
-      return response.data as Map<String, dynamic>;
-    } on DioException catch (e) {
-      _handleDioError(e);
-      rethrow;
+      final collection = _getMoodCollection();
+      final doc = await collection.doc(entryId).get();
+      
+      if (!doc.exists) {
+        throw NotFoundException('Mood entry not found');
+      }
+      
+      final data = doc.data() as Map<String, dynamic>;
+      // Remove Firestore-specific fields
+      data.remove('createdAt');
+      data.remove('updatedAt');
+      data.remove('userId');
+      
+      // Return entry data for analysis
+      // In a real implementation, this would call an AI service/Cloud Function
+      return {
+        'entry': data,
+        'status': 'ready_for_analysis',
+        'message': 'Entry retrieved successfully. AI analysis can be performed on this data.',
+      };
+    } catch (e) {
+      print('MoodApiService: Error analyzing entry: $e');
+      if (e is FirebaseException) {
+        _handleFirestoreError(e);
+        throw ApiException('Failed to analyze mood entry: ${e.message ?? e.code}', 500);
+      } else if (e is NotFoundException || e is ApiException) {
+        rethrow;
+      } else {
+        throw ApiException('Failed to analyze mood entry: ${e.toString()}', 500);
+      }
     }
   }
 
@@ -157,54 +299,65 @@ class MoodApiService {
     DateTime? endDate,
   }) async {
     try {
-      final queryParams = <String, dynamic>{};
-      if (userId != null) queryParams['userId'] = userId;
-      if (startDate != null) {
-        queryParams['startDate'] = startDate.toIso8601String();
-      }
-      if (endDate != null) {
-        queryParams['endDate'] = endDate.toIso8601String();
-      }
-
-      final response = await _dio.get(
-        '/mood/entries/analysis/trends',
-        queryParameters: queryParams.isEmpty ? null : queryParams,
+      final entries = await getEntriesForAnalysis(
+        userId: userId,
+        startDate: startDate,
+        endDate: endDate,
       );
-
-      return response.data as Map<String, dynamic>;
-    } on DioException catch (e) {
-      _handleDioError(e);
-      rethrow;
+      
+      // Basic trend analysis
+      // In a real implementation, this would call an AI service/Cloud Function
+      if (entries.isEmpty) {
+        return {
+          'status': 'no_data',
+          'message': 'No mood entries found for the specified period.',
+        };
+      }
+      
+      // Calculate average mood value
+      final avgMood = entries.map((e) => e.moodValue).reduce((a, b) => a + b) / entries.length;
+      
+      return {
+        'status': 'success',
+        'totalEntries': entries.length,
+        'averageMood': avgMood,
+        'entries': entries.map((e) => e.toJson()).toList(),
+        'message': 'Mood trends calculated successfully.',
+      };
+    } catch (e) {
+      print('MoodApiService: Error analyzing mood trends: $e');
+      if (e is FirebaseException) {
+        _handleFirestoreError(e);
+        throw ApiException('Failed to analyze mood trends: ${e.message ?? e.code}', 500);
+      } else if (e is ApiException) {
+        rethrow;
+      } else {
+        throw ApiException('Failed to analyze mood trends: ${e.toString()}', 500);
+      }
     }
   }
 
-  /// Handle Dio errors and convert to custom exceptions
-  void _handleDioError(DioException e) {
-    if (e.type == DioExceptionType.connectionTimeout ||
-        e.type == DioExceptionType.receiveTimeout ||
-        e.type == DioExceptionType.sendTimeout) {
-      throw NetworkException();
+  /// Handle Firestore errors and convert to custom exceptions
+  void _handleFirestoreError(FirebaseException e) {
+    switch (e.code) {
+      case 'permission-denied':
+        throw UnauthorizedException('Permission denied. Please check your authentication.');
+      case 'unauthenticated':
+        throw UnauthorizedException('User must be authenticated to access mood entries');
+      case 'not-found':
+        throw NotFoundException('Mood entry not found');
+      case 'unavailable':
+        throw NetworkException();
+      case 'deadline-exceeded':
+        throw NetworkException();
+      case 'resource-exhausted':
+        throw ServerException('Service temporarily unavailable. Please try again later.');
+      case 'internal':
+        throw ServerException('Internal server error. Please try again later.');
+      case 'unimplemented':
+        throw ServerException('Feature not implemented.');
+      default:
+        throw ApiException('Firestore error: ${e.message ?? e.code}', 500);
     }
-
-    if (e.response != null) {
-      final statusCode = e.response!.statusCode ?? 0;
-      final message = e.response!.data?['message'] ?? e.message ?? 'API error';
-
-      switch (statusCode) {
-        case 401:
-          throw UnauthorizedException(message);
-        case 404:
-          throw NotFoundException(message);
-        case 500:
-        case 502:
-        case 503:
-          throw ServerException(message);
-        default:
-          throw ApiException(message, statusCode);
-      }
-    }
-
-    throw NetworkException();
   }
 }
-

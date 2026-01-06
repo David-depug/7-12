@@ -1,47 +1,96 @@
-import 'package:dio/dio.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/journal_entry.dart';
 import '../utils/api_exceptions.dart';
-import '../config.dart';
 
-/// Service for journal API operations.
-/// Handles all backend communication for journal entries.
+/// Service for journal Firestore operations.
+/// Handles all backend communication for journal entries using Firebase Firestore.
 class JournalApiService {
-  final Dio _dio;
+  final FirebaseFirestore _firestore;
+  final FirebaseAuth _auth;
 
-  JournalApiService({Dio? dio})
-      : _dio = dio ??
-            Dio(
-              BaseOptions(
-                baseUrl: API_BASE_URL,
-                connectTimeout: const Duration(seconds: 30),
-                receiveTimeout: const Duration(seconds: 30),
-              ),
-            );
+  JournalApiService({
+    FirebaseFirestore? firestore,
+    FirebaseAuth? auth,
+  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance;
 
-  /// Save a journal entry to the backend
+  /// Get the current user ID, throwing an error if not authenticated
+  String _getCurrentUserId() {
+    final user = _auth.currentUser;
+    print('JournalApiService._getCurrentUserId: Current user = ${user?.uid ?? "NULL"}');
+    if (user == null) {
+      print('JournalApiService._getCurrentUserId: ERROR - User is not authenticated');
+      throw UnauthorizedException('User must be authenticated to save journal entries');
+    }
+    return user.uid;
+  }
+
+  /// Get the journal entries collection reference for the current user
+  CollectionReference _getJournalCollection() {
+    final userId = _getCurrentUserId();
+    return _firestore.collection('users').doc(userId).collection('journal_entries');
+  }
+
+  /// Save a journal entry to Firestore
   Future<void> saveEntry(JournalEntry entry) async {
     try {
-      await _dio.post(
-        '/journal/entries',
-        data: entry.toJson(),
-      );
-    } on DioException catch (e) {
-      _handleDioError(e);
+      final userId = _getCurrentUserId();
+      print('JournalApiService.saveEntry: Attempting to save entry ${entry.id} for user $userId');
+      final collection = _getJournalCollection();
+      print('JournalApiService.saveEntry: Collection path = users/$userId/journal_entries');
+      final entryData = entry.toJson();
+      
+      // Add userId and serverTimestamp for tracking
+      entryData['userId'] = userId;
+      entryData['createdAt'] = FieldValue.serverTimestamp();
+      entryData['updatedAt'] = FieldValue.serverTimestamp();
+      
+      print('JournalApiService.saveEntry: Writing to Firestore document: ${entry.id}');
+      await collection.doc(entry.id).set(entryData, SetOptions(merge: true));
+      print('JournalApiService: Entry ${entry.id} saved to Firestore successfully');
+    } catch (e) {
+      print('JournalApiService: Error saving entry to Firestore: $e');
+      if (e is FirebaseException) {
+        print('JournalApiService: FirebaseException details - code: ${e.code}, message: ${e.message}');
+        _handleFirestoreError(e);
+      } else {
+        print('JournalApiService: Non-Firebase exception: ${e.runtimeType}');
+        throw ApiException('Failed to save journal entry: ${e.toString()}', 500);
+      }
     }
   }
 
-  /// Get all journal entries from backend
+  /// Get all journal entries from Firestore for the current user
   Future<List<JournalEntry>> getEntries() async {
     try {
-      final response = await _dio.get('/journal/entries');
-      if (response.data is List) {
-        return (response.data as List)
-            .map((e) => JournalEntry.fromJson(e as Map<String, dynamic>))
-            .toList();
+      final collection = _getJournalCollection();
+      final snapshot = await collection
+          .orderBy('timestamp', descending: true)
+          .get();
+      
+      final entries = <JournalEntry>[];
+      for (var doc in snapshot.docs) {
+        try {
+          final data = doc.data() as Map<String, dynamic>;
+          // Remove Firestore-specific fields before parsing
+          data.remove('createdAt');
+          data.remove('updatedAt');
+          data.remove('userId');
+          
+          entries.add(JournalEntry.fromJson(data));
+        } catch (e) {
+          print('JournalApiService: Error parsing entry ${doc.id}: $e');
+        }
       }
-      return [];
-    } on DioException catch (e) {
-      _handleDioError(e);
+      
+      print('JournalApiService: Retrieved ${entries.length} entries from Firestore');
+      return entries;
+    } catch (e) {
+      print('JournalApiService: Error getting entries from Firestore: $e');
+      if (e is FirebaseException) {
+        _handleFirestoreError(e);
+      }
       return [];
     }
   }
@@ -49,21 +98,29 @@ class JournalApiService {
   /// Get a journal entry by date
   Future<JournalEntry?> getEntryByDate(DateTime date) async {
     try {
-      final response = await _dio.get(
-        '/journal/entries',
-        queryParameters: {
-          'date': date.toIso8601String().split('T')[0], // YYYY-MM-DD format
-        },
-      );
-      if (response.data != null) {
-        return JournalEntry.fromJson(response.data as Map<String, dynamic>);
+      final collection = _getJournalCollection();
+      // Format date as YYYY-MM-DD for comparison
+      final snapshot = await collection
+          .where('date', isEqualTo: date.toIso8601String().split('T')[0])
+          .limit(1)
+          .get();
+      
+      if (snapshot.docs.isEmpty) {
+        return null;
       }
-      return null;
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 404) {
-        return null; // Not found is not an error
+      
+      final data = snapshot.docs.first.data() as Map<String, dynamic>;
+      // Remove Firestore-specific fields
+      data.remove('createdAt');
+      data.remove('updatedAt');
+      data.remove('userId');
+      
+      return JournalEntry.fromJson(data);
+    } catch (e) {
+      print('JournalApiService: Error getting entry by date from Firestore: $e');
+      if (e is FirebaseException) {
+        _handleFirestoreError(e);
       }
-      _handleDioError(e);
       return null;
     }
   }
@@ -72,36 +129,60 @@ class JournalApiService {
   Future<List<JournalEntry>> getEntriesInRange(
       DateTime start, DateTime end) async {
     try {
-      final response = await _dio.get(
-        '/journal/entries',
-        queryParameters: {
-          'start': start.toIso8601String(),
-          'end': end.toIso8601String(),
-        },
-      );
-      if (response.data is List) {
-        return (response.data as List)
-            .map((e) => JournalEntry.fromJson(e as Map<String, dynamic>))
-            .toList();
+      final collection = _getJournalCollection();
+      // Use timestamp for range queries (more efficient than date string)
+      final startTimestamp = start.toIso8601String();
+      final endTimestamp = end.add(const Duration(days: 1)).toIso8601String(); // Include full end day
+      
+      final snapshot = await collection
+          .where('timestamp', isGreaterThanOrEqualTo: startTimestamp)
+          .where('timestamp', isLessThanOrEqualTo: endTimestamp)
+          .orderBy('timestamp', descending: true)
+          .get();
+      
+      final entries = <JournalEntry>[];
+      for (var doc in snapshot.docs) {
+        try {
+          final data = doc.data() as Map<String, dynamic>;
+          // Remove Firestore-specific fields
+          data.remove('createdAt');
+          data.remove('updatedAt');
+          data.remove('userId');
+          
+          entries.add(JournalEntry.fromJson(data));
+        } catch (e) {
+          print('JournalApiService: Error parsing entry ${doc.id}: $e');
+        }
       }
-      return [];
-    } on DioException catch (e) {
-      _handleDioError(e);
+      
+      return entries;
+    } catch (e) {
+      print('JournalApiService: Error getting entries in range from Firestore: $e');
+      if (e is FirebaseException) {
+        _handleFirestoreError(e);
+      }
       return [];
     }
   }
 
-  /// Delete a journal entry
+  /// Delete a journal entry from Firestore
   Future<void> deleteEntry(String id) async {
     try {
-      await _dio.delete('/journal/entries/$id');
-    } on DioException catch (e) {
-      _handleDioError(e);
+      final collection = _getJournalCollection();
+      await collection.doc(id).delete();
+      print('JournalApiService: Entry $id deleted from Firestore');
+    } catch (e) {
+      print('JournalApiService: Error deleting entry from Firestore: $e');
+      if (e is FirebaseException) {
+        _handleFirestoreError(e);
+      } else {
+        throw ApiException('Failed to delete journal entry: ${e.toString()}', 500);
+      }
     }
   }
 
   /// Get journal entries for AI analysis
-  /// This endpoint is specifically designed for AI bots to fetch and analyze journal data
+  /// This method is specifically designed for AI bots to fetch and analyze journal data
   /// Returns entries with all necessary data for analysis (answers, mood, timestamps)
   Future<List<JournalEntry>> getEntriesForAnalysis({
     String? userId,
@@ -110,74 +191,127 @@ class JournalApiService {
     int? limit,
   }) async {
     try {
-      final queryParams = <String, dynamic>{};
-      if (userId != null) queryParams['userId'] = userId;
-      if (startDate != null) {
-        queryParams['startDate'] = startDate.toIso8601String();
+      CollectionReference collection;
+      
+      // If userId is provided, use that user's collection (for AI bot access)
+      // Otherwise, use current user's collection
+      if (userId != null) {
+        collection = _firestore
+            .collection('users')
+            .doc(userId)
+            .collection('journal_entries');
+      } else {
+        collection = _getJournalCollection();
       }
-      if (endDate != null) {
-        queryParams['endDate'] = endDate.toIso8601String();
+      
+      Query query = collection.orderBy('timestamp', descending: true);
+      
+      if (startDate != null && endDate != null) {
+        // Firestore requires composite index for multiple range queries
+        // Use timestamp for range queries
+        query = query
+            .where('timestamp', isGreaterThanOrEqualTo: startDate.toIso8601String())
+            .where('timestamp', isLessThanOrEqualTo: endDate.add(const Duration(days: 1)).toIso8601String());
+      } else if (startDate != null) {
+        query = query.where('timestamp', 
+            isGreaterThanOrEqualTo: startDate.toIso8601String());
+      } else if (endDate != null) {
+        query = query.where('timestamp', 
+            isLessThanOrEqualTo: endDate.add(const Duration(days: 1)).toIso8601String());
       }
-      if (limit != null) queryParams['limit'] = limit;
-
-      final response = await _dio.get(
-        '/journal/entries/analysis',
-        queryParameters: queryParams.isEmpty ? null : queryParams,
-      );
-
-      if (response.data is List) {
-        return (response.data as List)
-            .map((e) => JournalEntry.fromJson(e as Map<String, dynamic>))
-            .toList();
+      
+      if (limit != null) {
+        query = query.limit(limit);
       }
-      return [];
-    } on DioException catch (e) {
-      _handleDioError(e);
+      
+      final snapshot = await query.get();
+      
+      final entries = <JournalEntry>[];
+      for (var doc in snapshot.docs) {
+        try {
+          final data = doc.data() as Map<String, dynamic>;
+          // Remove Firestore-specific fields
+          data.remove('createdAt');
+          data.remove('updatedAt');
+          data.remove('userId');
+          
+          entries.add(JournalEntry.fromJson(data));
+        } catch (e) {
+          print('JournalApiService: Error parsing entry ${doc.id} for analysis: $e');
+        }
+      }
+      
+      print('JournalApiService: Retrieved ${entries.length} entries for AI analysis');
+      return entries;
+    } catch (e) {
+      print('JournalApiService: Error getting entries for analysis: $e');
+      if (e is FirebaseException) {
+        _handleFirestoreError(e);
+      }
       return [];
     }
   }
 
   /// Send journal entry to AI bot for analysis and get insights
   /// This endpoint sends a single entry to the AI bot and returns analysis results
+  /// Note: This would typically call a Cloud Function or external API
+  /// For now, this is a placeholder that returns the entry data
   Future<Map<String, dynamic>> analyzeEntry(String entryId) async {
     try {
-      final response = await _dio.post(
-        '/journal/entries/$entryId/analyze',
-      );
-      return response.data as Map<String, dynamic>;
-    } on DioException catch (e) {
-      _handleDioError(e);
-      rethrow;
-    }
-  }
-
-  /// Handle Dio errors and convert to custom exceptions
-  void _handleDioError(DioException e) {
-    if (e.type == DioExceptionType.connectionTimeout ||
-        e.type == DioExceptionType.receiveTimeout ||
-        e.type == DioExceptionType.sendTimeout) {
-      throw NetworkException();
-    }
-
-    if (e.response != null) {
-      final statusCode = e.response!.statusCode ?? 0;
-      final message = e.response!.data?['message'] ?? e.message ?? 'API error';
-
-      switch (statusCode) {
-        case 401:
-          throw UnauthorizedException(message);
-        case 404:
-          throw NotFoundException(message);
-        case 500:
-        case 502:
-        case 503:
-          throw ServerException(message);
-        default:
-          throw ApiException(message, statusCode);
+      final collection = _getJournalCollection();
+      final doc = await collection.doc(entryId).get();
+      
+      if (!doc.exists) {
+        throw NotFoundException('Journal entry not found');
+      }
+      
+      final data = doc.data() as Map<String, dynamic>;
+      // Remove Firestore-specific fields
+      data.remove('createdAt');
+      data.remove('updatedAt');
+      data.remove('userId');
+      
+      // Return entry data for analysis
+      // In a real implementation, this would call an AI service/Cloud Function
+      return {
+        'entry': data,
+        'status': 'ready_for_analysis',
+        'message': 'Entry retrieved successfully. AI analysis can be performed on this data.',
+      };
+    } catch (e) {
+      print('JournalApiService: Error analyzing entry: $e');
+      if (e is FirebaseException) {
+        _handleFirestoreError(e);
+        throw ApiException('Failed to analyze journal entry: ${e.message ?? e.code}', 500);
+      } else if (e is NotFoundException || e is ApiException) {
+        rethrow;
+      } else {
+        throw ApiException('Failed to analyze journal entry: ${e.toString()}', 500);
       }
     }
+  }
 
-    throw NetworkException();
+  /// Handle Firestore errors and convert to custom exceptions
+  void _handleFirestoreError(FirebaseException e) {
+    switch (e.code) {
+      case 'permission-denied':
+        throw UnauthorizedException('Permission denied. Please check your authentication.');
+      case 'unauthenticated':
+        throw UnauthorizedException('User must be authenticated to access journal entries');
+      case 'not-found':
+        throw NotFoundException('Journal entry not found');
+      case 'unavailable':
+        throw NetworkException();
+      case 'deadline-exceeded':
+        throw NetworkException();
+      case 'resource-exhausted':
+        throw ServerException('Service temporarily unavailable. Please try again later.');
+      case 'internal':
+        throw ServerException('Internal server error. Please try again later.');
+      case 'unimplemented':
+        throw ServerException('Feature not implemented.');
+      default:
+        throw ApiException('Firestore error: ${e.message ?? e.code}', 500);
+    }
   }
 }
-

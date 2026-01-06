@@ -40,6 +40,12 @@ import 'package:flutter/services.dart'; // للـ MethodChannel
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Firebase first (required for Firestore)
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  
   await Hive.initFlutter();
 
   final journalLocalService = JournalLocalService();
@@ -60,9 +66,6 @@ Future<void> main() async {
   await NotificationService.initialize();
   await NotificationService.scheduleDailyJournalReminder();
   await NotificationService.scheduleDailyMoodReminder();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
   runApp(MindQuestApp(
     journalService: journalService,
     moodService: moodService,

@@ -19,9 +19,15 @@ class JournalService {
     // Best-effort sync to backend.
     try {
       await apiService.saveEntry(entry);
+      print('JournalService.saveEntry: Successfully synced entry ${entry.id} to Firestore');
     } catch (e) {
       // Log and keep local; sync can retry later.
       print('JournalService.saveEntry backend error: $e');
+      print('JournalService.saveEntry: Entry ${entry.id} saved locally but NOT synced to Firestore');
+      // Enhanced error logging for debugging
+      if (e is ApiException) {
+        print('JournalService.saveEntry: ApiException - ${e.message} (status: ${e.statusCode})');
+      }
     }
   }
 
